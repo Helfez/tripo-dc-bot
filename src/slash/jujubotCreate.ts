@@ -10,6 +10,7 @@ import {WORKFLOW_CONFIG, WORKFLOW_CHOICES, WorkflowType} from "../services/workf
 import {generateWithGemini, generateWithDoubao} from "../services/aiHub";
 import {ENVS} from "../services/urls";
 import tLog, {LOG_ACTIONS} from "../utils/logUtils";
+import {CheckoutBtnRows} from "../components/buttons/checkoutBtns";
 import axios from "axios";
 
 export const data = new SlashCommandBuilder()
@@ -143,7 +144,9 @@ ${config.img2img_prompt}`;
       resultImageUrl = await generateWithDoubao(apiKey, finalPrompt);
     }
 
-    // --- Build response ---
+    // --- Build response with checkout buttons ---
+    const checkoutRows = CheckoutBtnRows();
+
     // Handle base64 data URL: download and attach as file
     if (resultImageUrl.startsWith('data:')) {
       const base64Data = resultImageUrl.replace(/^data:image\/\w+;base64,/, "");
@@ -157,6 +160,7 @@ ${config.img2img_prompt}`;
         content: msgHeader,
         embeds: [embed],
         files: [file],
+        components: checkoutRows,
       });
     } else {
       // Regular URL — download and attach to avoid expiring links
@@ -172,6 +176,7 @@ ${config.img2img_prompt}`;
           content: msgHeader,
           embeds: [embed],
           files: [file],
+          components: checkoutRows,
         });
       } catch (downloadErr) {
         // Fallback: use URL directly in embed
@@ -181,6 +186,7 @@ ${config.img2img_prompt}`;
         await interaction.editReply({
           content: msgHeader,
           embeds: [embed],
+          components: checkoutRows,
         });
       }
     }
