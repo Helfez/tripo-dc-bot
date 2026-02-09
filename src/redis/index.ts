@@ -10,7 +10,21 @@ class TRedis {
   init = async () => {
     try {
       if (!this.redisDB) {
-        const redis = new Redis(ENVS.redisAddr);
+        if (!ENVS.redisAddr) {
+          tLog.log(LOG_ACTIONS.SYS, 'Redis address not configured, skipping Redis connection.');
+          return;
+        }
+        
+        const redis = new Redis(ENVS.redisAddr, {
+          // 如果连接失败，不要无限重试，防止刷屏报错
+          maxRetriesPerRequest: 3,
+        });
+
+        // 必须监听 error 事件，否则连接失败会导致进程崩溃
+        redis.on('error', (err) => {
+          tLog.logError(LOG_ACTIONS.SYS, 'Redis client error:', err);
+        });
+
         await redis.ping();
         this.redisDB = redis;
         tLog.log(LOG_ACTIONS.SYS, 'Connected to Redis');
