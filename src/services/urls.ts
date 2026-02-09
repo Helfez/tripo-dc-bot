@@ -6,6 +6,7 @@ let ENVS = {
   shareUrl: '',
   roverKey: '',
   redisAddr: '',
+  aiHubApiKey: '',
 }
 
 let isTest = false;
@@ -22,6 +23,7 @@ function envInit() {
     shareUrl: process.env.TRIPO_SHARE_URL!,
     roverKey: process.env.ROVER_API_KEY!,
     redisAddr: process.env.REDIS_ADDR!,
+    aiHubApiKey: process.env.AIHUBMIX_API_KEY || '',
   }
 }
 

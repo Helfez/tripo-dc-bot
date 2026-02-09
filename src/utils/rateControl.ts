@@ -8,6 +8,7 @@ export enum RATE_CONTROL_LIMIT {
   PP        = 20,
   ANIMATION = 20,
   REFINE    = 5,
+  STYLE_GEN = 10,
 }
 
 export enum TaskType {
@@ -16,6 +17,7 @@ export enum TaskType {
   TASK_IMAGE     = "image",
   TASK_PP        = "postprocess/export",
   TASK_ANIMATION = "animation",
+  TASK_STYLE_GEN = "style_gen",
 }
 
 // Check whether uid reach rate control for task
@@ -41,6 +43,9 @@ export async function isReachRateControl(uid: string, task: TaskType) {
       break;
     case TaskType.TASK_ANIMATION:
       rateLimit = RATE_CONTROL_LIMIT.ANIMATION;
+      break;
+    case TaskType.TASK_STYLE_GEN:
+      rateLimit = RATE_CONTROL_LIMIT.STYLE_GEN;
       break;
   }
 
