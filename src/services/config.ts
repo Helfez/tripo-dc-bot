@@ -25,6 +25,7 @@ class TRequestInstance {
         },
         error => {
           // 处理请求错误
+          console.error("Request Error:", error);
           return Promise.reject(error);
         }
       );
@@ -35,6 +36,8 @@ class TRequestInstance {
           return response;
         },
         error => {
+          console.error("Response Error Status:", error.response?.status);
+          console.error("Response Error Data:", JSON.stringify(error.response?.data));
           const badError: any = new Error('');
           if (error.response.data) {
             badError.info = error.response.data ? error.response.data : { errCode: error.response.status,  };
