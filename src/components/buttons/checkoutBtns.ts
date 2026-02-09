@@ -17,11 +17,15 @@ const VARIANTS: VariantOption[] = [
   { label: '10cm $129.99', variantId: '62485711815027', emoji: '💎' },
 ];
 
-function makeCheckoutUrl(variantId: string): string {
-  return `${STORE_DOMAIN}/cart/${variantId}:1`;
+function makeCheckoutUrl(variantId: string, imageUrl?: string): string {
+  const base = `${STORE_DOMAIN}/cart/${variantId}:1`;
+  if (imageUrl) {
+    return `${base}?note=${encodeURIComponent(imageUrl)}`;
+  }
+  return base;
 }
 
-export function CheckoutBtnRows(): ActionRowBuilder<ButtonBuilder>[] {
+export function CheckoutBtnRows(imageUrl?: string): ActionRowBuilder<ButtonBuilder>[] {
   const row1 = new ActionRowBuilder<ButtonBuilder>();
   const row2 = new ActionRowBuilder<ButtonBuilder>();
 
@@ -30,7 +34,7 @@ export function CheckoutBtnRows(): ActionRowBuilder<ButtonBuilder>[] {
     const btn = new ButtonBuilder()
       .setLabel(v.label)
       .setStyle(ButtonStyle.Link)
-      .setURL(makeCheckoutUrl(v.variantId));
+      .setURL(makeCheckoutUrl(v.variantId, imageUrl));
     if (v.emoji) btn.setEmoji(v.emoji);
 
     if (i < 3) {

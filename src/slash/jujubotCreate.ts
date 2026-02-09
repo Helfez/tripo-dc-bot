@@ -144,52 +144,36 @@ ${config.img2img_prompt}`;
       resultImageUrl = await generateWithDoubao(apiKey, finalPrompt);
     }
 
-    // --- Build response with checkout buttons ---
-    const checkoutRows = CheckoutBtnRows();
+    // --- Build response, then add checkout buttons with image URL ---
+    let resultBuffer: Buffer;
 
-    // Handle base64 data URL: download and attach as file
     if (resultImageUrl.startsWith('data:')) {
       const base64Data = resultImageUrl.replace(/^data:image\/\w+;base64,/, "");
-      const buffer = Buffer.from(base64Data, 'base64');
-      const file = new AttachmentBuilder(buffer, { name: 'result.png' });
-
-      const embed = new EmbedBuilder().setImage('attachment://result.png');
-      if (imageUrl) embed.setThumbnail(imageUrl);
-
-      await interaction.editReply({
-        content: msgHeader,
-        embeds: [embed],
-        files: [file],
-        components: checkoutRows,
-      });
+      resultBuffer = Buffer.from(base64Data, 'base64');
     } else {
-      // Regular URL — download and attach to avoid expiring links
-      try {
-        const imgRes = await axios.get(resultImageUrl, { responseType: 'arraybuffer', timeout: 30000 });
-        const buffer = Buffer.from(imgRes.data);
-        const file = new AttachmentBuilder(buffer, { name: 'result.png' });
-
-        const embed = new EmbedBuilder().setImage('attachment://result.png');
-        if (imageUrl) embed.setThumbnail(imageUrl);
-
-        await interaction.editReply({
-          content: msgHeader,
-          embeds: [embed],
-          files: [file],
-          components: checkoutRows,
-        });
-      } catch (downloadErr) {
-        // Fallback: use URL directly in embed
-        const embed = new EmbedBuilder().setImage(resultImageUrl);
-        if (imageUrl) embed.setThumbnail(imageUrl);
-
-        await interaction.editReply({
-          content: msgHeader,
-          embeds: [embed],
-          components: checkoutRows,
-        });
-      }
+      const imgRes = await axios.get(resultImageUrl, { responseType: 'arraybuffer', timeout: 30000 });
+      resultBuffer = Buffer.from(imgRes.data);
     }
+
+    // Step 1: Send image first to get Discord CDN URL
+    const file = new AttachmentBuilder(resultBuffer, { name: 'result.png' });
+    const embed = new EmbedBuilder().setImage('attachment://result.png');
+    if (imageUrl) embed.setThumbnail(imageUrl);
+
+    const msg = await interaction.editReply({
+      content: msgHeader,
+      embeds: [embed],
+      files: [file],
+    });
+
+    // Step 2: Extract Discord CDN URL from the uploaded attachment
+    const cdnImageUrl = msg.attachments.first()?.url || msg.embeds[0]?.image?.url;
+
+    // Step 3: Update message with checkout buttons containing the image URL as cart note
+    const checkoutRows = CheckoutBtnRows(cdnImageUrl);
+    await interaction.editReply({
+      components: checkoutRows,
+    });
 
     tLog.logSuccess(LOG_ACTIONS.SYS, 'jujubot-create success', style);
   } catch (e: any) {
