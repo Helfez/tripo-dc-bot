@@ -166,11 +166,11 @@ ${config.img2img_prompt}`;
       files: [file],
     });
 
-    // Step 2: Extract Discord CDN URL from the uploaded attachment
-    const cdnImageUrl = msg.attachments.first()?.url || msg.embeds[0]?.image?.url;
+    // Step 2: Build Discord message link as a short, stable reference
+    const designUrl = `https://discord.com/channels/${interaction.guildId}/${msg.channelId}/${msg.id}`;
 
-    // Step 3: Update message with checkout buttons containing the image URL as cart note
-    const checkoutRows = CheckoutBtnRows(cdnImageUrl);
+    // Step 3: Update message with checkout buttons carrying style + design link as line item properties
+    const checkoutRows = CheckoutBtnRows({ styleName, designUrl });
     await interaction.editReply({
       components: checkoutRows,
     });

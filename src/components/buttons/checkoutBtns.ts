@@ -17,15 +17,27 @@ const VARIANTS: VariantOption[] = [
   { label: '10cm $129.99', variantId: '62485711815027', emoji: '💎' },
 ];
 
-function makeCheckoutUrl(variantId: string, imageUrl?: string): string {
-  const base = `${STORE_DOMAIN}/cart/${variantId}:1`;
-  if (imageUrl) {
-    return `${base}?note=${encodeURIComponent(imageUrl)}`;
-  }
-  return base;
+interface CheckoutInfo {
+  styleName?: string;
+  designUrl?: string;  // Discord message link (short, stable)
 }
 
-export function CheckoutBtnRows(imageUrl?: string): ActionRowBuilder<ButtonBuilder>[] {
+function makeCheckoutUrl(variantId: string, info?: CheckoutInfo): string {
+  const base = `${STORE_DOMAIN}/cart/${variantId}:1`;
+  const params = new URLSearchParams();
+
+  if (info?.styleName) {
+    params.set('properties[Style]', info.styleName);
+  }
+  if (info?.designUrl) {
+    params.set('properties[Design Preview]', info.designUrl);
+  }
+
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : base;
+}
+
+export function CheckoutBtnRows(info?: CheckoutInfo): ActionRowBuilder<ButtonBuilder>[] {
   const row1 = new ActionRowBuilder<ButtonBuilder>();
   const row2 = new ActionRowBuilder<ButtonBuilder>();
 
@@ -34,7 +46,7 @@ export function CheckoutBtnRows(imageUrl?: string): ActionRowBuilder<ButtonBuild
     const btn = new ButtonBuilder()
       .setLabel(v.label)
       .setStyle(ButtonStyle.Link)
-      .setURL(makeCheckoutUrl(v.variantId, imageUrl));
+      .setURL(makeCheckoutUrl(v.variantId, info));
     if (v.emoji) btn.setEmoji(v.emoji);
 
     if (i < 3) {
