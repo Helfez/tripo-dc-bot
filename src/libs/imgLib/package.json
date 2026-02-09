@@ -1,0 +1,11 @@
+{
+  "name": "img_quad",
+  "version": "0.1.0",
+  "files": [
+    "img_quad_bg.wasm",
+    "img_quad.js",
+    "img_quad.d.ts"
+  ],
+  "main": "img_quad.js",
+  "types": "img_quad.d.ts"
+}

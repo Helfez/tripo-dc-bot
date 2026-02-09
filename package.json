@@ -1,0 +1,26 @@
+{
+  "name": "tripo-dc-bot-ts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "yarn ts-node src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@discordjs/rest": "^2.3.0",
+    "axios": "^1.7.2",
+    "discord-api-types": "^0.37.92",
+    "discord.js": "^14.15.3",
+    "ioredis": "^5.4.1"
+  },
+  "devDependencies": {
+    "@types/dotenv": "^8.2.0",
+    "@types/ioredis": "^5.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.3"
+  }
+}
