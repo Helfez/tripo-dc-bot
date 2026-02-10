@@ -8,6 +8,7 @@ export type ClassifyCategory = 'human' | 'creature' | 'human_creature';
 export interface ClassifyResult {
   category: ClassifyCategory;
   reasoning: string;
+  isRealPhoto: boolean;
 }
 
 const CLASSIFY_SYSTEM_PROMPT = `You are a visual classifier. Analyze the user's input (image and/or text) and determine the subject:
@@ -15,7 +16,9 @@ const CLASSIFY_SYSTEM_PROMPT = `You are a visual classifier. Analyze the user's 
 - "creature": The subject is a non-human creature (animal, monster, pet, fantasy beast)
 - "human_creature": The subject contains both a human AND a creature together
 
-Respond in JSON only: {"category": "human|creature|human_creature", "reasoning": "brief explanation"}`;
+Also determine if the image is a real photograph of a person (not anime, illustration, 3D render, or cartoon).
+
+Respond in JSON only: {"category": "human|creature|human_creature", "isRealPhoto": true/false, "reasoning": "brief explanation"}`;
 
 /**
  * Classify user input (image and/or text) into human, creature, or human_creature
@@ -79,5 +82,6 @@ export async function classifyInput(
   return {
     category: category as ClassifyCategory,
     reasoning: parsed.reasoning || '',
+    isRealPhoto: !!parsed.isRealPhoto,
   };
 }
