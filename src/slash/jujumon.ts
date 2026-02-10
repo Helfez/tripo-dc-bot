@@ -93,11 +93,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
       let finalPrompt: string;
       if (imageUrl && prompt) {
-        finalPrompt = `${prompt}\n\n[风格约束]\n${CREATURE_STYLE_PROMPT}`;
+        finalPrompt = `[主体]\n${prompt}\n\n[任务指令]\n请严格按照主体描述，结合图片参考，以下面的风格绘制。必须保留主体的物种特征和外观。\n\n[风格约束]\n${CREATURE_STYLE_PROMPT}`;
       } else if (imageUrl) {
         finalPrompt = `[任务指令]\n请将图片中的生物主体，以下面的风格重新绘制。严格保留原图生物的物种、体型特征、毛色/皮肤颜色和姿势。\n\n[风格约束]\n${CREATURE_STYLE_PROMPT}`;
       } else {
-        finalPrompt = `${prompt}\n\n[风格约束]\n${CREATURE_STYLE_PROMPT}`;
+        finalPrompt = `[主体]\n请绘制：${prompt}。必须清晰体现"${prompt}"的物种外观特征（体型、耳朵、尾巴、毛色等）。\n\n[风格约束]\n${CREATURE_STYLE_PROMPT}`;
       }
 
       tLog.log(LOG_ACTIONS.SYS, 'jujumon creature generating');
@@ -123,10 +123,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       const embed = new EmbedBuilder()
         .setTitle("\u{1F409} JuJuMon — Creature")
         .setDescription(`Created by ${userMention(interaction.user.id)}`)
-        .setImage('attachment://jujumon.png')
-        .addFields(
-          { name: "AI says", value: `"${result.reasoning}"` },
-        );
+        .setImage('attachment://jujumon.png');
 
       if (imageUrl) {
         embed.setThumbnail(imageUrl);
