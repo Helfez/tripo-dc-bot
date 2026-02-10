@@ -1,4 +1,5 @@
 import {
+  AttachmentBuilder,
   ChatInputCommandInteraction,
   EmbedBuilder,
   SlashCommandBuilder,
@@ -6,14 +7,18 @@ import {
 import {checkViolationByRegexp, sprintf, userMention} from "../utils";
 import {isReachRateControl, RATE_CONTROL_LIMIT, TaskType} from "../utils/rateControl";
 import {classifyInput, ClassifyCategory} from "../services/aiRouter";
+import {generateWithGemini, generateWithDoubao} from "../services/aiHub";
 import {ENVS} from "../services/urls";
 import tLog, {LOG_ACTIONS} from "../utils/logUtils";
+import axios from "axios";
 
 const CATEGORY_DISPLAY: Record<ClassifyCategory, string> = {
   human: "\u{1F9D1} Human Portrait",
   creature: "\u{1F409} Creature",
   human_creature: "\u{1F9D1}\u200D\u{1F91D}\u200D\u{1F9D1}\u{1F409} Human + Creature",
 };
+
+const CREATURE_STYLE_PROMPT = "极致Q版萌化风格，治愈系黏土质感3D建模，头身比1:1，超圆滚滚的头部，扁平豆豆眼，圆润腮红，短到几乎看不见的四肢，胖乎乎的软萌体态，表面有细腻的黏土颗粒纹理和手工指纹痕迹，柔和马卡龙低饱和配色，色彩自然渐变融合，温暖漫射光，边缘模糊的柔和阴影，慵懒松弛的可爱姿势，点缀微小花瓣/小草元素，纯白干净背景，整体氛围温暖治愈，8K高清，细节丰富";
 
 export const data = new SlashCommandBuilder()
   .setName('jujumon')
@@ -69,15 +74,75 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
   const imageUrl = attachment?.url || null;
 
+  const msgHeader = sprintf("**JuJuMon**\nCreated by %s", userMention(interaction.user.id));
+
   try {
     await interaction.deferReply();
 
     tLog.log(LOG_ACTIONS.SYS, 'jujumon classifying', prompt || '(no prompt)', imageUrl ? '(has image)' : '(no image)');
+    await interaction.editReply({ content: `${msgHeader}\nStatus: classifying...` });
 
     const result = await classifyInput(apiKey, imageUrl, prompt);
-
     const categoryLabel = CATEGORY_DISPLAY[result.category];
 
+    tLog.logSuccess(LOG_ACTIONS.SYS, 'jujumon classified', result.category);
+
+    // --- Creature workflow: generate image ---
+    if (result.category === 'creature') {
+      await interaction.editReply({ content: `${msgHeader}\nCategory: ${categoryLabel}\nStatus: generating...` });
+
+      let finalPrompt: string;
+      if (imageUrl && prompt) {
+        finalPrompt = `${prompt}\n\n[风格约束]\n${CREATURE_STYLE_PROMPT}`;
+      } else if (imageUrl) {
+        finalPrompt = `[任务指令]\n请将图片中的生物主体，以下面的风格重新绘制。严格保留原图生物的物种、体型特征、毛色/皮肤颜色和姿势。\n\n[风格约束]\n${CREATURE_STYLE_PROMPT}`;
+      } else {
+        finalPrompt = `${prompt}\n\n[风格约束]\n${CREATURE_STYLE_PROMPT}`;
+      }
+
+      tLog.log(LOG_ACTIONS.SYS, 'jujumon creature generating');
+
+      let resultImageUrl: string;
+      if (imageUrl) {
+        resultImageUrl = await generateWithGemini(apiKey, finalPrompt, imageUrl);
+      } else {
+        resultImageUrl = await generateWithDoubao(apiKey, finalPrompt);
+      }
+
+      // Build image buffer
+      let resultBuffer: Buffer;
+      if (resultImageUrl.startsWith('data:')) {
+        const base64Data = resultImageUrl.replace(/^data:image\/\w+;base64,/, "");
+        resultBuffer = Buffer.from(base64Data, 'base64');
+      } else {
+        const imgRes = await axios.get(resultImageUrl, { responseType: 'arraybuffer', timeout: 30000 });
+        resultBuffer = Buffer.from(imgRes.data);
+      }
+
+      const file = new AttachmentBuilder(resultBuffer, { name: 'jujumon.png' });
+      const embed = new EmbedBuilder()
+        .setTitle("\u{1F409} JuJuMon — Creature")
+        .setDescription(`Created by ${userMention(interaction.user.id)}`)
+        .setImage('attachment://jujumon.png')
+        .addFields(
+          { name: "AI says", value: `"${result.reasoning}"` },
+        );
+
+      if (imageUrl) {
+        embed.setThumbnail(imageUrl);
+      }
+
+      await interaction.editReply({
+        content: msgHeader,
+        embeds: [embed],
+        files: [file],
+      });
+
+      tLog.logSuccess(LOG_ACTIONS.SYS, 'jujumon creature done');
+      return;
+    }
+
+    // --- Other workflows: coming soon ---
     const embed = new EmbedBuilder()
       .setTitle("\u{1F50D} JuJuMon Analysis")
       .setDescription(`Created by ${userMention(interaction.user.id)}`)
@@ -94,14 +159,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     await interaction.editReply({
       embeds: [embed],
     });
-
-    tLog.logSuccess(LOG_ACTIONS.SYS, 'jujumon classified', result.category);
   } catch (e: any) {
     const errMsg = e.message || String(e);
     tLog.logError(LOG_ACTIONS.SYS, 'jujumon failed:', errMsg);
     try {
       await interaction.editReply({
-        content: `${userMention(interaction.user.id)} JuJuMon classification failed: ${errMsg.substring(0, 200)}`,
+        content: `${msgHeader}\nStatus: error\n${errMsg.substring(0, 200)}`,
       });
     } catch {
       // interaction may have expired
