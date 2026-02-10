@@ -7,7 +7,7 @@ import {
 import {checkViolationByRegexp, sprintf, userMention} from "../utils";
 import {isReachRateControl, RATE_CONTROL_LIMIT, TaskType} from "../utils/rateControl";
 import {classifyInput, ClassifyCategory} from "../services/aiRouter";
-import {generateWithGemini, generateWithDoubao} from "../services/aiHub";
+import {generateWithGemini} from "../services/aiHub";
 import {ENVS} from "../services/urls";
 import tLog, {LOG_ACTIONS} from "../utils/logUtils";
 import axios from "axios";
@@ -102,12 +102,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
       tLog.log(LOG_ACTIONS.SYS, 'jujumon creature generating');
 
-      let resultImageUrl: string;
-      if (imageUrl) {
-        resultImageUrl = await generateWithGemini(apiKey, finalPrompt, imageUrl);
-      } else {
-        resultImageUrl = await generateWithDoubao(apiKey, finalPrompt);
-      }
+      const resultImageUrl = await generateWithGemini(apiKey, finalPrompt, imageUrl);
 
       // Build image buffer
       let resultBuffer: Buffer;
