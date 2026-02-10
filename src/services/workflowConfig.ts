@@ -1,4 +1,4 @@
-export type WorkflowType = 'board_game' | 'chibi' | 'scale_1_7' | 'creative';
+export type WorkflowType = 'board_game' | 'chibi' | 'scale_1_7' | 'creative' | 'jujumon_creature' | 'jujumon_trainer';
 
 interface WorkflowEntry {
   img2img_prompt: string;
@@ -20,6 +20,12 @@ export const WORKFLOW_CONFIG: Record<WorkflowType, WorkflowEntry> = {
   },
   'creative': {
     img2img_prompt: "如果图片中是真人照片或宠物，就变成风格化手办，并且是白底图。如果是其他物体，就保持主体并改为白底图。**严禁生成三视图或多视图，仅生成单体正面。**"
+  },
+  'jujumon_creature': {
+    img2img_prompt: "" // handled by custom logic in jujubotCreate
+  },
+  'jujumon_trainer': {
+    img2img_prompt: "" // handled by custom logic in jujubotCreate
   }
 };
 
@@ -28,4 +34,6 @@ export const WORKFLOW_CHOICES = [
   { name: 'Chibi Style', value: 'chibi' },
   { name: '1:7 Figure Style', value: 'scale_1_7' },
   { name: 'Creative Style', value: 'creative' },
+  { name: 'JuJuMon Creature', value: 'jujumon_creature' },
+  { name: 'JuJuMon Trainer', value: 'jujumon_trainer' },
 ] as const;

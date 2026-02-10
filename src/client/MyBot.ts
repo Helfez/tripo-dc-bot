@@ -101,9 +101,12 @@ export default class MyBot extends Client {
   }
 
   // 初始化slash相关参数
+  static ENABLED_SLASH = ['jujubotCreate.ts', 'jujumon.ts'];
+
   initSlash = () => {
     try {
-      const slashFiles = fs.readdirSync(path.join(__dirname, '..', 'slash')).filter(file => file.endsWith('.ts'));
+      const slashFiles = fs.readdirSync(path.join(__dirname, '..', 'slash'))
+        .filter(file => file.endsWith('.ts') && MyBot.ENABLED_SLASH.includes(file));
       for (const file of slashFiles) {
         const command = require(`../slash/${file}`);
         this.collection.slashcmds.set(command.data.name, command);
