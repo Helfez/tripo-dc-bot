@@ -24,22 +24,31 @@ export const data = new SlashCommandBuilder()
   )
   .addStringOption(option =>
     option.setName("prompt")
-      .setDescription("Text description")
-      .setRequired(true)
+      .setDescription("Text description (provide prompt and/or image)")
+      .setRequired(false)
   )
   .addAttachmentOption(option =>
     option.setName("image")
-      .setDescription("Reference image (optional)")
+      .setDescription("Reference image (provide image and/or prompt)")
       .setRequired(false)
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
   const template = interaction.options.getString('template', true) as TournamentTemplate;
   const attachment = interaction.options.getAttachment('image');
-  const prompt = interaction.options.getString('prompt', true);
+  const prompt = interaction.options.getString('prompt') || undefined;
+
+  // Validate: at least one of image or prompt required
+  if (!attachment && !prompt) {
+    await interaction.reply({
+      content: `${userMention(interaction.user.id)} Please provide at least an image or a text prompt.`,
+      ephemeral: true,
+    });
+    return;
+  }
 
   // Content moderation
-  if (checkViolationByRegexp(prompt)) {
+  if (prompt && checkViolationByRegexp(prompt)) {
     await interaction.reply({
       content: `${userMention(interaction.user.id)} your prompt violates ToS or contains illegal information, not allowed.`,
     });
@@ -77,7 +86,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const generatedPrompt = await generateTextWithVision(
       apiKey,
       config.systemPrompt,
-      prompt,
+      prompt || '',
       imageUrl,
       config.visionModel,
     );
