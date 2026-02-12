@@ -197,9 +197,11 @@ export default class MyBot extends Client {
       });
       tLog.log(LOG_ACTIONS.SYS, 'Global commands registered successfully');
     } catch (e: any) {
-      tLog.logError(LOG_ACTIONS.DEFAULT, "failed to register commands",
-        `status=${e.status} code=${e.code} message=${e.message}`,
-        e.rawError ? JSON.stringify(e.rawError) : '');
+      console.error('=== COMMAND REGISTRATION ERROR ===');
+      console.error('message:', e.message);
+      console.error('status:', e.status);
+      console.error('code:', e.code);
+      console.error('rawError:', JSON.stringify(e.rawError, null, 2));
     }
   }
 
