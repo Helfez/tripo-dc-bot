@@ -22,15 +22,15 @@ export const data = new SlashCommandBuilder()
       .setRequired(true)
       .addChoices(...TOURNAMENT_CHOICES)
   )
-  .addAttachmentOption(option =>
-    option.setName("image")
-      .setDescription("Reference image (optional)")
-      .setRequired(false)
-  )
   .addStringOption(option =>
     option.setName("prompt")
       .setDescription("Text description")
       .setRequired(true)
+  )
+  .addAttachmentOption(option =>
+    option.setName("image")
+      .setDescription("Reference image (optional)")
+      .setRequired(false)
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
