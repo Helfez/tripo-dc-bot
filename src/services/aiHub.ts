@@ -18,6 +18,7 @@ export async function generateWithGemini(
   prompt: string,
   primaryImageUrl?: string | null,
   styleImageUrl?: string | null,
+  model: string = "gemini-3-pro-image-preview",
 ): Promise<string> {
   const content: any[] = [
     { type: "text", text: prompt }
@@ -32,7 +33,7 @@ export async function generateWithGemini(
   }
 
   const payload = {
-    model: "gemini-3-pro-image-preview",
+    model,
     messages: [
       {
         role: "user",
@@ -83,6 +84,56 @@ export async function generateWithGemini(
   }
 
   return `data:image/png;base64,${imageBase64}`;
+}
+
+/**
+ * Call a vision/text LLM with a system prompt to generate text output.
+ * Used for semantic analysis / prompt expansion steps in tournament templates.
+ */
+export async function generateTextWithVision(
+  apiKey: string,
+  systemPrompt: string,
+  userPrompt: string,
+  imageUrl?: string | null,
+  model: string = "gemini-3-flash-preview",
+): Promise<string> {
+  const userContent: any[] = [];
+
+  if (userPrompt) {
+    userContent.push({ type: "text", text: userPrompt });
+  }
+
+  if (imageUrl) {
+    userContent.push({ type: "image_url", image_url: { url: imageUrl } });
+  }
+
+  if (userContent.length === 0) {
+    throw new Error("generateTextWithVision requires at least a prompt or image");
+  }
+
+  const payload = {
+    model,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userContent },
+    ],
+    temperature: 0.7,
+  };
+
+  tLog.log(LOG_ACTIONS.SYS, "Vision text request model:", model);
+
+  const res = await axios.post(`${AIHUBMIX_BASE}/v1/chat/completions`, payload, {
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+    },
+    timeout: 300000,
+  });
+
+  const message = res.data.choices?.[0]?.message;
+  if (!message?.content) throw new Error("Vision model returned empty response");
+
+  return message.content.trim();
 }
 
 /**

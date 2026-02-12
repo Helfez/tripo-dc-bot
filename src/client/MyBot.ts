@@ -101,7 +101,7 @@ export default class MyBot extends Client {
   }
 
   // 初始化slash相关参数
-  static ENABLED_SLASH = ['jujubotCreate.ts', 'jujumon.ts'];
+  static ENABLED_SLASH = ['jujubotCreate.ts', 'jujumon.ts', 'jujuTournament.ts'];
 
   initSlash = () => {
     try {
