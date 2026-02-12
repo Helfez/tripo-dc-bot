@@ -178,7 +178,7 @@ export default class MyBot extends Client {
     }
   }
 
-  // 注册slash
+  // 注册slash（guild级别，秒级生效）
   registerApplicationCommands = async () => {
     try {
       if (!this.token) {
@@ -190,11 +190,20 @@ export default class MyBot extends Client {
         tLog.logError(LOG_ACTIONS.DEFAULT, 'User is not available.');
         return;
       }
-      await rest.put(Routes.applicationCommands(this.user.id), {
-        body: this.rest_application_commands_array,
-      });
+
+      const guilds = this.guilds.cache;
+      for (const [guildId, guild] of guilds) {
+        try {
+          await rest.put(Routes.applicationGuildCommands(this.user.id, guildId), {
+            body: this.rest_application_commands_array,
+          });
+          tLog.log(LOG_ACTIONS.SYS, `Registered commands for guild: ${guild.name} (${guildId})`);
+        } catch (e: any) {
+          tLog.logError(LOG_ACTIONS.DEFAULT, `Failed to register commands for guild ${guildId}`, e);
+        }
+      }
     } catch (e: any) {
-      tLog.logError(LOG_ACTIONS.DEFAULT, "failed to create 'create' command", e);
+      tLog.logError(LOG_ACTIONS.DEFAULT, "failed to register commands", e);
     }
   }
 
