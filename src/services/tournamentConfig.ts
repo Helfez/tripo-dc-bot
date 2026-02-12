@@ -68,5 +68,5 @@ Only output the final English prompt.`,
 };
 
 export const TOURNAMENT_CHOICES = [
-  { name: 'Liquid Dragon 🐲', value: 'liquid_dragon' },
+  { name: 'Liquid Dragon', value: 'liquid_dragon' },
 ] as const;
