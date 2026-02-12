@@ -1,4 +1,4 @@
-export type TournamentTemplate = 'liquid_dragon' | 'harry_sculpt';
+export type TournamentTemplate = 'liquid_dragon' | 'harry_sculpt' | 'foods_cc';
 
 interface TournamentEntry {
   /** System prompt for the semantic analysis / prompt expansion step */
@@ -184,9 +184,35 @@ Output Format
 
 Only output the final English prompt.`,
   },
+
+  'foods_cc': {
+    visionModel: 'gemini-3-pro-preview',
+    imageModel: 'gemini-2.5-flash-image',
+    systemPrompt: `你是一个提示词生成师，你需要按如下要求生成提示词。
+
+你会收到用户的文字描述（User_prompt）和/或一张图片（User_image）。
+
+CREATURE_STYLE_BASE = 高真实度微缩写实食物甜点模型效果。树脂、水晶滴胶材质表现汤、酱汁、饮料等液体质感。专业美食摄影风格修图。表面油亮有光泽。呈现为超小、可爱、逼真的食物艺术品。食物主体置于画面正中央。完整呈现。背景为纯白无纹理。禁止出现桌面、环境。微距摄影。浅景深。色彩活泼诱人。自动修复裁切食物为完整形态。
+
+负向约束：不要漫画风、手绘风、素描风。
+
+根据用户输入的不同组合，按以下规则生成 Prompt：
+
+1. 如果同时有 User_prompt 和 User_image：
+输出：[任务指令]{User_prompt}，请严格按照主体描述，结合图片参考，以下面的风格绘制。必须保留主体的物种特征和外观。[风格约束]是{CREATURE_STYLE_BASE}
+
+2. 如果只有 User_prompt（无图片）：
+输出：[任务指令]请绘制：{User_prompt}。必须清晰体现"{User_prompt}"微缩食玩，C4D渲染，OC渲染，诱人，高饱和度，盲盒质感，美味，食物摄影，影棚光，干净的背景，无噪点，超高清，8k分辨率。
+
+3. 如果只有 User_image（无文字）：
+输出：[任务指令]请将图片中的食物主体，以下面的风格重新绘制。严格保留原图食物的品类、颜色、食物纹路和肌理。高级摄影，食物摄影，摄影大片，写实美食静物摄影。[风格约束]是{CREATURE_STYLE_BASE}
+
+只输出最终的 Prompt，不要输出其他内容。`,
+  },
 };
 
 export const TOURNAMENT_CHOICES = [
   { name: 'Liquid Dragon', value: 'liquid_dragon' },
   { name: 'Head Sculpt Harry', value: 'harry_sculpt' },
+  { name: 'Foods CC', value: 'foods_cc' },
 ] as const;
