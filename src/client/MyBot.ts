@@ -178,7 +178,7 @@ export default class MyBot extends Client {
     }
   }
 
-  // 注册slash：全局 + guild双注册
+  // 注册slash（全局，最多1小时生效）
   registerApplicationCommands = async () => {
     try {
       if (!this.token) {
@@ -191,27 +191,11 @@ export default class MyBot extends Client {
         return;
       }
 
-      tLog.log(LOG_ACTIONS.SYS, `Registering ${this.rest_application_commands_array.length} commands...`);
-
-      // 全局注册（最多1小时生效）
+      tLog.log(LOG_ACTIONS.SYS, `Registering ${this.rest_application_commands_array.length} global commands...`);
       await rest.put(Routes.applicationCommands(this.user.id), {
         body: this.rest_application_commands_array,
       });
-      tLog.log(LOG_ACTIONS.SYS, 'Global commands registered');
-
-      // Guild级别注册（秒级生效）
-      const guilds = this.guilds.cache;
-      tLog.log(LOG_ACTIONS.SYS, `Registering guild commands for ${guilds.size} guilds...`);
-      for (const [guildId, guild] of guilds) {
-        try {
-          await rest.put(Routes.applicationGuildCommands(this.user.id, guildId), {
-            body: this.rest_application_commands_array,
-          });
-          tLog.log(LOG_ACTIONS.SYS, `Registered commands for guild: ${guild.name} (${guildId})`);
-        } catch (e: any) {
-          tLog.logError(LOG_ACTIONS.DEFAULT, `Failed to register commands for guild ${guildId}`, e);
-        }
-      }
+      tLog.log(LOG_ACTIONS.SYS, 'Global commands registered successfully');
     } catch (e: any) {
       tLog.logError(LOG_ACTIONS.DEFAULT, "failed to register commands", e);
     }
