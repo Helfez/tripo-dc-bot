@@ -50,7 +50,7 @@ export async function generateWithGemini(
       "Content-Type": "application/json",
       "Authorization": `Bearer ${apiKey}`
     },
-    timeout: 120000,
+    timeout: 300000,
   });
 
   const message = res.data.choices?.[0]?.message;
@@ -115,7 +115,7 @@ export async function generateWithDoubao(
         "Content-Type": "application/json",
         "Authorization": `Bearer ${apiKey}`
       },
-      timeout: 120000,
+      timeout: 300000,
     }
   );
 

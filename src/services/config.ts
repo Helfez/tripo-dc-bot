@@ -8,7 +8,7 @@ class TRequestInstance {
     if (!this.ins) {
       this.ins = axios.create({
         baseURL: ENVS.apiUrl, // 替换为你的API baseURL
-        timeout: 300000,
+        timeout: 600000,
       });
 
       // 请求拦截器

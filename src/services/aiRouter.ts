@@ -59,7 +59,7 @@ export async function classifyInput(
       "Content-Type": "application/json",
       "Authorization": `Bearer ${apiKey}`,
     },
-    timeout: 60000,
+    timeout: 300000,
   });
 
   const message = res.data.choices?.[0]?.message;
