@@ -15,7 +15,7 @@ import axios from "axios";
 
 export const data = new SlashCommandBuilder()
   .setName('jujutournament')
-  .setDescription('JuJuTournament - create with templates')
+  .setDescription('JuJuTournament - generate art from templates')
   .addStringOption(option =>
     option.setName("template")
       .setDescription("Choose a template")
