@@ -95,14 +95,28 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     await interaction.editReply({ content: `${msgHeader}\nStatus: generating image...` });
 
     // Step 2: Image generation — use the expanded prompt (+ optional reference image)
+    const imagePrompt = (config.imagePromptPrefix || '') + generatedPrompt;
     tLog.log(LOG_ACTIONS.SYS, `jujutournament [${template}] step2: image generation`);
-    const resultImageUrl = await generateWithGemini(
+    let resultImageUrl = await generateWithGemini(
       apiKey,
-      generatedPrompt,
+      imagePrompt,
       imageUrl,
       null,
       config.imageModel,
     );
+
+    // Step 3 (optional): Refinement — take the generated image and refine it
+    if (config.refinement) {
+      await interaction.editReply({ content: `${msgHeader}\nStatus: refining image...` });
+      tLog.log(LOG_ACTIONS.SYS, `jujutournament [${template}] step3: refinement`);
+      resultImageUrl = await generateWithGemini(
+        apiKey,
+        generatedPrompt,
+        resultImageUrl,
+        null,
+        config.refinement.model,
+      );
+    }
 
     // Build response
     let resultBuffer: Buffer;

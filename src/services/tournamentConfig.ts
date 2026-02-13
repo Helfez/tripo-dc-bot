@@ -1,4 +1,4 @@
-export type TournamentTemplate = 'liquid_dragon' | 'harry_sculpt' | 'foods_cc' | 'animal_ashley' | 'funko_pop';
+export type TournamentTemplate = 'liquid_dragon' | 'harry_sculpt' | 'foods_cc' | 'animal_ashley' | 'funko_pop' | 'animal_beads';
 
 interface TournamentEntry {
   /** System prompt for the semantic analysis / prompt expansion step */
@@ -7,6 +7,13 @@ interface TournamentEntry {
   visionModel: string;
   /** Model used for image generation */
   imageModel: string;
+  /** Optional prefix prepended to the generated prompt for the image generation step */
+  imagePromptPrefix?: string;
+  /** Optional refinement step: takes image from first generation and refines it */
+  refinement?: {
+    /** Model used for the refinement generation */
+    model: string;
+  };
 }
 
 export const TOURNAMENT_CONFIG: Record<TournamentTemplate, TournamentEntry> = {
@@ -305,6 +312,33 @@ Construct the prompt using this structure:
 # Output Format
 Only output the final English prompt.`,
   },
+
+  'animal_beads': {
+    visionModel: 'gemini-3-flash-preview',
+    imageModel: 'gemini-2.5-flash-image',
+    imagePromptPrefix: '随机保留原图中的 1 个动物头像并只能生成白底图，然后',
+    refinement: {
+      model: 'gemini-3-pro-image-preview',
+    },
+    systemPrompt: `你是一个提示词生成师，你需要按如下要求生成提示词。
+
+你会收到用户的文字描述（User_prompt）和/或一张图片（User_image）。
+
+CREATURE_STYLE = "主体是动物头部，保持等比例缩放，物品类型是手工手链，黑色手链，手链水平放置，材质是软陶或树脂，毛发呈块状纹理，工艺是手工雕刻或手绘上色，风格是写实风格，细节丰富，保留毛色和动物头部特征，保留特征细节，毛发纹理呈块状，有纹理感，特写视角，大小控制在 2 厘米以内，纯白背景，工作室灯光，不要出现细胡须、单根毛发，多根毛发需要风格化实体形状，不要有背景干扰"
+
+根据用户输入的不同组合，按以下规则生成 Prompt：
+
+1. 如果同时有 User_prompt 和 User_image：
+输出：[任务指令]{User_prompt}，请严格按照主体描述，结合图片参考，以下面的风格绘制。必须保留主体的特征和外观。[风格约束]是{CREATURE_STYLE}
+
+2. 如果只有 User_prompt（无图片）：
+输出：[任务指令]请绘制：{User_prompt}。必须清晰体现"{User_prompt}"的主体特征。[风格约束]是{CREATURE_STYLE}
+
+3. 如果只有 User_image（无文字）：
+输出：[任务指令]请将图片中的生物主体，以下面的风格重新绘制。严格保留原图主体特征，面部表情，动作姿态。[风格约束]是{CREATURE_STYLE}
+
+只输出最终的 Prompt，不要输出其他内容。`,
+  },
 };
 
 export const TOURNAMENT_CHOICES = [
@@ -313,4 +347,5 @@ export const TOURNAMENT_CHOICES = [
   { name: 'Foods CC', value: 'foods_cc' },
   { name: 'Animal Ashley', value: 'animal_ashley' },
   { name: 'Funko Pop', value: 'funko_pop' },
+  { name: 'Animal Beads', value: 'animal_beads' },
 ] as const;
