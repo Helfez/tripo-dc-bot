@@ -5,3 +5,5 @@
 /.vscode/
 .DS_Store
 DEPLOY_AWS.md
+prisma/data/
+prisma/dev.db

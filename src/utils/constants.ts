@@ -21,6 +21,11 @@ export const BtnFormat = {
 
   BTN_GIVEAWAY_ENTER_PREFIX: 'btn_giveaway_enter_',
   BTN_GIVEAWAY_ENTER_FORMAT: 'btn_giveaway_enter_%s',
+
+  BTN_LUCKY_DRAW: 'lucky_draw',
+  BTN_COPY_CODE_PREFIX: 'copy_code_',
+  BTN_MY_PRIZES: 'my_prizes',
+  BTN_MY_WORKS: 'my_works',
 }
 
 export const GiveawayConstants = {

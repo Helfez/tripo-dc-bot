@@ -9,6 +9,7 @@ import {isReachRateControl, RATE_CONTROL_LIMIT, TaskType} from "../utils/rateCon
 import {ClassifyCategory} from "../services/aiRouter";
 import {runJujumonPipeline} from "../services/jujumonPipeline";
 import tLog, {LOG_ACTIONS} from "../utils/logUtils";
+import * as workService from "../services/lottery/workService";
 
 const CATEGORY_DISPLAY: Record<ClassifyCategory, string> = {
   human: "\u{1F9D1} Human Portrait",
@@ -99,6 +100,18 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       embeds: [embed],
       files: [file],
     });
+
+    // Record work + auto +1 lottery chance (non-fatal)
+    try {
+      await workService.createWork(
+        interaction.user.id,
+        result.category === 'human' ? 'jujutrainers' : 'jujumon',
+        prompt || '',
+        imageUrl || '',
+      );
+    } catch (lotteryErr: any) {
+      tLog.logError(LOG_ACTIONS.LOTTERY, 'Failed to record work:', lotteryErr?.message || lotteryErr);
+    }
 
     tLog.logSuccess(LOG_ACTIONS.SYS, `jujumon [${result.category}] done`);
   } catch (e: any) {

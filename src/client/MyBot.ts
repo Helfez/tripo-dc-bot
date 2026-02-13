@@ -23,6 +23,10 @@ import tLog, {LOG_ACTIONS} from "../utils/logUtils";
 import {GiveawayScheduler} from '../services/giveawayScheduler';
 import {TwitterScheduler} from '../services/twitterScheduler';
 import {BindCheckBtn, BindTripoBtn} from '../components/buttons/bindTripoBtn';
+import {initLottery} from '../services/lottery/prismaClient';
+import {startDailyCron} from '../services/lottery/dailyCron';
+import {setupChannelMessages} from '../services/lottery/channelSetup';
+import * as lotteryUserService from '../services/lottery/userService';
 
 export default class MyBot extends Client {
   rest_application_commands_array: any[] = [];
@@ -57,9 +61,10 @@ export default class MyBot extends Client {
     this.on(Events.MessageCreate, this.onMessage);
     this.on(Events.ChannelCreate, this.onChannelCreate);
     this.on(Events.InteractionCreate, this.onInteractionCreate);
+    this.on(Events.GuildMemberAdd, this.onGuildMemberAdd);
   }
 
-  onReady = () => {
+  onReady = async () => {
     tLog.log(LOG_ACTIONS.SYS,`Logged in as ${this.user?.tag}!`);
     tRedis.init();
     this.registerApplicationCommands();
@@ -68,6 +73,14 @@ export default class MyBot extends Client {
     }
     if (this.twitterScheduler) {
       this.twitterScheduler.start();
+    }
+    // Lottery system init
+    try {
+      await initLottery();
+      startDailyCron();
+      await setupChannelMessages(this);
+    } catch (e: any) {
+      tLog.logError(LOG_ACTIONS.SYS, 'Failed to init lottery system:', e?.message || e);
     }
   };
 
@@ -106,8 +119,18 @@ export default class MyBot extends Client {
     }
   }
 
+  // 新成员加入时自动注册 + 发放 5 次抽奖
+  onGuildMemberAdd = async (member: any) => {
+    try {
+      await lotteryUserService.getOrCreate(member.id, member.displayName);
+      tLog.log(LOG_ACTIONS.LOTTERY, `New member joined: ${member.displayName} (+5 chances)`);
+    } catch (err: any) {
+      tLog.logError(LOG_ACTIONS.LOTTERY, 'Member join error:', err?.message || err);
+    }
+  }
+
   // 初始化slash相关参数
-  static ENABLED_SLASH = ['jujubotCreate.ts', 'jujumon.ts', 'jujuTournament.ts'];
+  static ENABLED_SLASH = ['jujubotCreate.ts', 'jujumon.ts', 'jujuTournament.ts', 'me.ts', 'admin.ts'];
 
   initSlash = () => {
     try {

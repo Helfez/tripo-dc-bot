@@ -11,6 +11,7 @@ export enum LOG_ACTIONS {
   SYS = 'system',
   GIVEAWAY = 'giveaway',
   TWITTER = 'twitter',
+  LOTTERY = 'lottery',
   DEFAULT = 'unknown',
 }
 

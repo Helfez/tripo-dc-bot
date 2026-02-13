@@ -13,6 +13,10 @@ COPY package.json yarn.lock ./
 # 安装依赖
 RUN yarn install --frozen-lockfile
 
+# 复制 Prisma schema 并生成客户端
+COPY prisma ./prisma/
+RUN npx prisma generate
+
 # 复制源代码
 COPY . .
 

@@ -20,5 +20,5 @@ jobs:
             git pull origin main
             sudo docker stop dc-bot && sudo docker rm dc-bot
             sudo docker build -t dc-bot .
-            sudo docker run -d --restart=always --env-file ~/tripo-dc-bot/.env --name dc-bot dc-bot
+            sudo docker run -d --restart=always --env-file ~/tripo-dc-bot/.env -v /data/jujumon-db:/app/prisma/data --name dc-bot dc-bot
             sudo docker image prune -f

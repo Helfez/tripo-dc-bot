@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 本地开发用 SQLite，生产切换为 postgresql
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  discordId    String   @unique @map("discord_id")
+  username     String   @default("")
+  drawChances  Int      @default(0) @map("draw_chances")
+  totalDraws   Int      @default(0) @map("total_draws")
+  dailyDraws   Int      @default(0) @map("daily_draws")
+  dailyEarned  Int      @default(0) @map("daily_earned")
+  lastDrawDate String?  @map("last_draw_date")
+  hasPurchased Boolean  @default(false) @map("has_purchased")
+  joinedAt     DateTime @default(now()) @map("joined_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  works    Work[]
+  prizes   Prize[]
+  referralsMade     Referral[] @relation("Referrer")
+  referralsReceived Referral[] @relation("Invited")
+
+  @@map("users")
+}
+
+model Work {
+  id        Int      @id @default(autoincrement())
+  workUid   String   @unique @map("work_uid")
+  userId    Int      @map("user_id")
+  discordId String   @map("discord_id")
+  mode      String   // 'jujumon' | 'jujutrainers'
+  prompt    String   @default("")
+  imageUrl  String   @default("") @map("image_url")
+  shareUrl  String   @default("") @map("share_url")
+  viewCount Int      @default(0) @map("view_count")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("works")
+}
+
+model Prize {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  discordId  String   @map("discord_id")
+  prizeTier  String   @map("prize_tier")  // 'first','second','third','discount_90','discount_80','discount_70'
+  prizeName  String   @map("prize_name")
+  couponCode String   @unique @map("coupon_code")
+  isCopied   Boolean  @default(false) @map("is_copied")
+  isUsed     Boolean  @default(false) @map("is_used")
+  expiresAt  DateTime? @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("prizes")
+}
+
+model DailyPrizePool {
+  id         Int    @id @default(autoincrement())
+  prizeDate  String @map("prize_date")   // YYYY-MM-DD
+  prizeTier  String @map("prize_tier")
+  totalCount Int    @map("total_count")
+  wonCount   Int    @default(0) @map("won_count")
+  remaining  Int
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([prizeDate, prizeTier])
+  @@map("daily_prize_pool")
+}
+
+model Referral {
+  id         Int      @id @default(autoincrement())
+  referrerId Int      @map("referrer_id")
+  invitedId  Int      @map("invited_id")
+  status     String   @default("pending") // 'pending','confirmed','invalid'
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  referrer User @relation("Referrer", fields: [referrerId], references: [id])
+  invited  User @relation("Invited", fields: [invitedId], references: [id])
+
+  @@map("referrals")
+}
+
+model Config {
+  key       String   @id
+  value     String
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  @@map("config")
+}
