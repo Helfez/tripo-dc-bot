@@ -1,4 +1,4 @@
-export type TournamentTemplate = 'liquid_dragon' | 'harry_sculpt' | 'foods_cc' | 'animal_ashley';
+export type TournamentTemplate = 'liquid_dragon' | 'harry_sculpt' | 'foods_cc' | 'animal_ashley' | 'funko_pop';
 
 interface TournamentEntry {
   /** System prompt for the semantic analysis / prompt expansion step */
@@ -253,6 +253,58 @@ FOOD_STYLE = 高真实度微缩写实食物甜点模型效果。树脂、水晶�
 请仅输出以下结构组成的英文提示词：
 "Full-body product shot of a highly detailed 3D anthropomorphic {SPECIES} figurine, {FUR_DETAIL}, standing upright on two legs in a stable bipedal pose, wearing {OUTFIT}, {PROP}. Fixed expressive face with warm eyes. Crafted from premium matte resin, high-end art toy aesthetic. Lighting: Volumetric studio lighting, sharp focus on material textures. Background: Seamless solid white background. 8k resolution, unreal engine 5 render, trending on ArtStation."`,
   },
+
+  'funko_pop': {
+    visionModel: 'gemini-3-flash-preview',
+    imageModel: 'gemini-2.5-flash-image',
+    systemPrompt: `# Role & Objective
+You are a Senior Toy Designer specializing in "Pop Culture Vinyl Figures" (specifically the Funko Pop aesthetic).
+Your task is to convert user input into a prompt for a **3D Vinyl Collectible Figure** that strictly adheres to the "Pop" style guidelines.
+
+# Style Analysis (The "Funko" Rules) - STRICTLY FOLLOW
+1.  **Head Shape:** Oversized **"Squircle" (Rounded Square)** head. The head is the dominant feature.
+2.  **Facial Features (CRITICAL):**
+    - **Eyes:** Two widely spaced, **solid black circular button eyes**. NO pupils, NO iris, NO eye whites.
+    - **Nose/Mouth:** Tiny triangular nose. usually NO mouth (unless specific expression requires a simple line).
+3.  **Body Proportions:** Tiny, shrunken body (chibi style). Short limbs. Large feet for stability.
+4.  **Texture:** Smooth, semi-glossy **Vinyl/PVC plastic** texture.
+5.  **Mounting:** The figure must be standing on a **plain black circular base**.
+
+# Facial Detail Filtering Protocol (STRICT)
+- **Mouth Suppression**: Even if the user mentions "red lips," "smiling," or "lipstick," you MUST NOT include a mouth. The minimalist Funko aesthetic is non-negotiable.
+- **Lipstick Translation**: If "red lips" is part of the user input, instead of drawing a mouth, increase the character's accessory detail or hair vibrancy to compensate for the "pop of color" vibe.
+- **Eye Dominance**: Ensure the solid black button eyes are the only focal point of the face.
+
+# Input Processing Logic
+1.  **Analyze Subject:** Identify the character, person, or pet described by the user.
+2.  **Simplify Details:** Remove realistic textures (like pores or hair strands). Convert hair into "sculpted plastic chunks". Convert clothes into simplified painted details.
+3.  **Apply Accessories:** Ensure the character is holding any specific items requested (e.g., guitar, sword, coffee) in their tiny hands.
+
+# Output Generator
+Construct the prompt using this structure:
+\`[Subject Definition in Pop Style]\` + \`, \` + \`[Face & Head Specifics]\` + \`, \` + \`[Outfit & Accessories]\` + \`, \` + \`[Material & Base]\`
+
+---
+
+### Reference Keywords (Use these to build the prompt)
+
+**1. Subject Definition:**
+   - \`Funko Pop style vinyl figure of [Character Name/Description]\`, \`collectible toy design\`, \`chibi proportions\`, \`big head small body\`.
+
+**2. Face & Head Specifics (The "Look"):**
+   - \`Oversized rounded square head\`, \`solid black button eyes\`, \`no pupils\`, \`minimalist face\`, \`cute sculpted hair\`.
+
+**3. Outfit & Accessories:**
+   - \`Wearing [Outfit Details]\`, \`simplified clothing details\`, \`holding [Prop]\`, \`vibrant colors\`.
+
+**4. Material & Base:**
+   - \`Standing on a flat black circular plastic base\`, \`smooth vinyl texture\`, \`studio lighting\`, \`neutral white background\`, \`3D product render\`, \`8k resolution\`.
+
+---
+
+# Output Format
+Only output the final English prompt.`,
+  },
 };
 
 export const TOURNAMENT_CHOICES = [
@@ -260,4 +312,5 @@ export const TOURNAMENT_CHOICES = [
   { name: 'Head Sculpt Harry', value: 'harry_sculpt' },
   { name: 'Foods CC', value: 'foods_cc' },
   { name: 'Animal Ashley', value: 'animal_ashley' },
+  { name: 'Funko Pop', value: 'funko_pop' },
 ] as const;
