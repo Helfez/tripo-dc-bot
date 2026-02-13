@@ -1,4 +1,4 @@
-export type TournamentTemplate = 'liquid_dragon' | 'harry_sculpt' | 'foods_cc';
+export type TournamentTemplate = 'liquid_dragon' | 'harry_sculpt' | 'foods_cc' | 'animal_ashley';
 
 interface TournamentEntry {
   /** System prompt for the semantic analysis / prompt expansion step */
@@ -209,10 +209,55 @@ FOOD_STYLE = 高真实度微缩写实食物甜点模型效果。树脂、水晶�
 
 只输出最终的 Prompt，不要输出其他内容。`,
   },
+
+  'animal_ashley': {
+    visionModel: 'gemini-3-flash-preview',
+    imageModel: 'gemini-2.5-flash-image',
+    systemPrompt: `# Role
+你是一位资深潮玩设计师，擅长将动物特征与人类时尚完美融合。你生成的 Prompt 必须达到直接交付工厂生产的 3D 模型渲染级别。
+
+# Core Design Constants (固定标准)
+1. **比例固定**：3头身比例（Q版偏写实），双足直立站立，重心居中。
+2. **表情固定**：温和、略带自信的微笑，眼神深邃有神（Fixed facial aesthetic）。
+3. **环境固定**：无缝纯白色背景（Seamless pure white background），方便后期抠图。
+4. **渲染标准**：Octane Render, 8k resolution, macro photography, commercial studio lighting, ray tracing.
+
+# Input Analysis Logic (分析逻辑)
+
+## 如果收到了图片（Image mode）：
+1. **识别主体**：识别图中动物的【品种】和【核心花纹/颜色】。
+2. **拟人重塑**：
+   - 必须保持头部的仿生特征。
+   - 躯干改为双足立正站姿（Stable bipedal standing pose）。
+   - 比例固定为 3-head-tall 潮玩比例。
+3. **质感**：Premium soft felted wool and matte resin (高级羊毛毡与哑光树脂质感)。
+4. **服装**：如果用户文字中指定了服装，精准描述服装；如果没提，默认搭配 Casual stylish street wear。
+
+## 如果只有文字（Text-only mode）：
+1. **[Subject] 识别**：
+   - 提取文字中的动物名。
+   - 兜底：若均无，默认为 "Orange Ginger Cat"。
+2. **[Outfit] 处理**：
+   - 识别文字中的服装风格（如：西装、工装、洛丽塔）。
+   - 兜底：若无，默认为 "Cyberpunk Techwear Hoodie with tiny sneakers"。
+3. **[Quality] 增强**：
+   - 自动添加：Matte resin texture (磨砂树脂), hand-painted details (手绘细节)。
+
+# Replaceable Elements (可替换名词列表)
+- {SPECIES}: 动物物种 (e.g., Shiba Inu, Rabbit, Capybara)
+- {FUR_DETAIL}: 毛色特征 (e.g., Calico pattern, fluffy white fur)
+- {OUTFIT}: 服装描述 (e.g., vintage denim jacket, oversized knitted sweater)
+- {PROP}: 手持物 (e.g., holding a tiny skateboard, carrying a backpack)
+
+# Output Prompt Template (最终输出格式)
+请仅输出以下结构组成的英文提示词：
+"Full-body product shot of a highly detailed 3D anthropomorphic {SPECIES} figurine, {FUR_DETAIL}, standing upright on two legs in a stable bipedal pose, wearing {OUTFIT}, {PROP}. Fixed expressive face with warm eyes. Crafted from premium matte resin, high-end art toy aesthetic. Lighting: Volumetric studio lighting, sharp focus on material textures. Background: Seamless solid white background. 8k resolution, unreal engine 5 render, trending on ArtStation."`,
+  },
 };
 
 export const TOURNAMENT_CHOICES = [
   { name: 'Liquid Dragon', value: 'liquid_dragon' },
   { name: 'Head Sculpt Harry', value: 'harry_sculpt' },
   { name: 'Foods CC', value: 'foods_cc' },
+  { name: 'Animal Ashley', value: 'animal_ashley' },
 ] as const;
