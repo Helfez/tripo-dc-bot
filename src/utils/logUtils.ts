@@ -10,6 +10,7 @@ export enum LOG_ACTIONS {
   BIND = 'bind',
   SYS = 'system',
   GIVEAWAY = 'giveaway',
+  TWITTER = 'twitter',
   DEFAULT = 'unknown',
 }
 

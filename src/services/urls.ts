@@ -7,6 +7,11 @@ let ENVS = {
   roverKey: '',
   redisAddr: '',
   aiHubApiKey: '',
+  twitterBearerToken: '',
+  twitterAppKey: '',
+  twitterAppSecret: '',
+  twitterAccessToken: '',
+  twitterAccessSecret: '',
 }
 
 let isTest = false;
@@ -24,6 +29,11 @@ function envInit() {
     roverKey: process.env.ROVER_API_KEY!,
     redisAddr: process.env.REDIS_ADDR!,
     aiHubApiKey: process.env.AIHUBMIX_API_KEY || '',
+    twitterBearerToken: process.env.TWITTER_BEARER_TOKEN || '',
+    twitterAppKey: process.env.TWITTER_APP_KEY || '',
+    twitterAppSecret: process.env.TWITTER_APP_SECRET || '',
+    twitterAccessToken: process.env.TWITTER_ACCESS_TOKEN || '',
+    twitterAccessSecret: process.env.TWITTER_ACCESS_SECRET || '',
   }
 }
 

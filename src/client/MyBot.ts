@@ -21,6 +21,7 @@ import TMessages from "../utils/messages";
 import tRedis from "../redis";
 import tLog, {LOG_ACTIONS} from "../utils/logUtils";
 import {GiveawayScheduler} from '../services/giveawayScheduler';
+import {TwitterScheduler} from '../services/twitterScheduler';
 import {BindCheckBtn, BindTripoBtn} from '../components/buttons/bindTripoBtn';
 
 export default class MyBot extends Client {
@@ -30,6 +31,7 @@ export default class MyBot extends Client {
     btnHandler: new Collection(),
   }
   private giveawayScheduler?: GiveawayScheduler;
+  private twitterScheduler?: TwitterScheduler;
 
   constructor() {
     // @ts-ignore
@@ -45,6 +47,7 @@ export default class MyBot extends Client {
 
     if (!isTest) {
       this.giveawayScheduler = new GiveawayScheduler(this);
+      this.twitterScheduler = new TwitterScheduler();
     }
 
     this.initSlash();
@@ -62,6 +65,9 @@ export default class MyBot extends Client {
     this.registerApplicationCommands();
     if (this.giveawayScheduler) {
       this.giveawayScheduler.start();
+    }
+    if (this.twitterScheduler) {
+      this.twitterScheduler.start();
     }
   };
 

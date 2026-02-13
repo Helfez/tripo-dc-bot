@@ -6,12 +6,10 @@ import {
 } from 'discord.js';
 import {checkViolationByRegexp, sprintf, userMention} from "../utils";
 import {isReachRateControl, RATE_CONTROL_LIMIT, TaskType} from "../utils/rateControl";
-import {TOURNAMENT_CONFIG, TOURNAMENT_CHOICES, TournamentTemplate} from "../services/tournamentConfig";
-import {generateTextWithVision, generateWithGemini} from "../services/aiHub";
-import {ENVS} from "../services/urls";
+import {TOURNAMENT_CHOICES, TournamentTemplate} from "../services/tournamentConfig";
+import {runTournamentPipeline} from "../services/tournamentPipeline";
 import tLog, {LOG_ACTIONS} from "../utils/logUtils";
 import {CheckoutBtnRows} from "../components/buttons/checkoutBtns";
-import axios from "axios";
 
 export const data = new SlashCommandBuilder()
   .setName('jujutournament')
@@ -65,70 +63,23 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  const apiKey = ENVS.aiHubApiKey;
-  if (!apiKey) {
-    await interaction.reply({ content: 'Server config error: AIHUBMIX_API_KEY not set.', ephemeral: true });
-    return;
-  }
-
-  const config = TOURNAMENT_CONFIG[template];
-  const templateName = TOURNAMENT_CHOICES.find(c => c.value === template)?.name || template;
   const imageUrl = attachment?.url || null;
-
+  const templateName = TOURNAMENT_CHOICES.find(c => c.value === template)?.name || template;
   const msgHeader = sprintf("**JuJuTournament - %s**\nCreated by %s", templateName, userMention(interaction.user.id));
 
   try {
     await interaction.deferReply();
-    await interaction.editReply({ content: `${msgHeader}\nStatus: analyzing...` });
 
-    // Step 1: Semantic analysis — expand user input into a detailed generation prompt
-    tLog.log(LOG_ACTIONS.SYS, `jujutournament [${template}] step1: semantic analysis`);
-    const generatedPrompt = await generateTextWithVision(
-      apiKey,
-      config.systemPrompt,
-      prompt || '',
-      imageUrl,
-      config.visionModel,
-    );
-    tLog.log(LOG_ACTIONS.SYS, `jujutournament [${template}] generated prompt:`, generatedPrompt.substring(0, 120));
-
-    await interaction.editReply({ content: `${msgHeader}\nStatus: generating image...` });
-
-    // Step 2: Image generation — use the expanded prompt (+ optional reference image)
-    const imagePrompt = (config.imagePromptPrefix || '') + generatedPrompt;
-    tLog.log(LOG_ACTIONS.SYS, `jujutournament [${template}] step2: image generation`);
-    let resultImageUrl = await generateWithGemini(
-      apiKey,
-      imagePrompt,
-      imageUrl,
-      null,
-      config.imageModel,
+    const result = await runTournamentPipeline(
+      { template, prompt, imageUrl },
+      {
+        onAnalyzing: () => interaction.editReply({ content: `${msgHeader}\nStatus: analyzing...` }),
+        onGenerating: () => interaction.editReply({ content: `${msgHeader}\nStatus: generating image...` }),
+        onRefining: () => interaction.editReply({ content: `${msgHeader}\nStatus: refining image...` }),
+      },
     );
 
-    // Step 3 (optional): Refinement — take the generated image and refine it
-    if (config.refinement) {
-      await interaction.editReply({ content: `${msgHeader}\nStatus: refining image...` });
-      tLog.log(LOG_ACTIONS.SYS, `jujutournament [${template}] step3: refinement`);
-      resultImageUrl = await generateWithGemini(
-        apiKey,
-        generatedPrompt,
-        resultImageUrl,
-        null,
-        config.refinement.model,
-      );
-    }
-
-    // Build response
-    let resultBuffer: Buffer;
-    if (resultImageUrl.startsWith('data:')) {
-      const base64Data = resultImageUrl.replace(/^data:image\/\w+;base64,/, "");
-      resultBuffer = Buffer.from(base64Data, 'base64');
-    } else {
-      const imgRes = await axios.get(resultImageUrl, { responseType: 'arraybuffer', timeout: 30000 });
-      resultBuffer = Buffer.from(imgRes.data);
-    }
-
-    const file = new AttachmentBuilder(resultBuffer, { name: 'result.png' });
+    const file = new AttachmentBuilder(result.imageBuffer, { name: 'result.png' });
     const embed = new EmbedBuilder().setImage('attachment://result.png');
     if (imageUrl) embed.setThumbnail(imageUrl);
 
