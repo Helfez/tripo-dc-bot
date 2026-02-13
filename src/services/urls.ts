@@ -25,6 +25,14 @@ let ENVS = {
 
 let isTest = false;
 
+/** Strip surrounding quotes that Docker --env-file preserves literally */
+function stripQuotes(s: string): string {
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    return s.slice(1, -1);
+  }
+  return s;
+}
+
 function envInit() {
   if (process.env.IS_TEST) {
     isTest = true;
@@ -44,14 +52,14 @@ function envInit() {
     twitterAccessToken: process.env.TWITTER_ACCESS_TOKEN || '',
     twitterAccessSecret: process.env.TWITTER_ACCESS_SECRET || '',
     // Lottery
-    channelLuckyDraw: process.env.CHANNEL_LUCKY_DRAW || '',
-    channelUserCenter: process.env.CHANNEL_USER_CENTER || '',
-    winProbability: parseFloat(process.env.WIN_PROBABILITY || '0.01'),
-    maxDailyDraws: parseInt(process.env.MAX_DAILY_DRAWS || '50', 10),
-    dailyPrizeCount: parseInt(process.env.DAILY_PRIZE_COUNT || '34', 10),
-    webDomain: process.env.WEB_DOMAIN || '',
-    adminIds: (process.env.ADMIN_IDS || '').split(',').filter(Boolean),
-    databaseUrl: process.env.DATABASE_URL || '',
+    channelLuckyDraw: stripQuotes(process.env.CHANNEL_LUCKY_DRAW || ''),
+    channelUserCenter: stripQuotes(process.env.CHANNEL_USER_CENTER || ''),
+    winProbability: parseFloat(stripQuotes(process.env.WIN_PROBABILITY || '0.01')),
+    maxDailyDraws: parseInt(stripQuotes(process.env.MAX_DAILY_DRAWS || '50'), 10),
+    dailyPrizeCount: parseInt(stripQuotes(process.env.DAILY_PRIZE_COUNT || '34'), 10),
+    webDomain: stripQuotes(process.env.WEB_DOMAIN || ''),
+    adminIds: stripQuotes(process.env.ADMIN_IDS || '').split(',').filter(Boolean),
+    databaseUrl: stripQuotes(process.env.DATABASE_URL || ''),
   }
 }
 
