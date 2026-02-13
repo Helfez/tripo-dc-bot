@@ -1,0 +1,24 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 54.193.12.241
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/tripo-dc-bot
+            git pull origin main
+            sudo docker stop dc-bot && sudo docker rm dc-bot
+            sudo docker build -t dc-bot .
+            sudo docker run -d --restart=always --env-file ~/tripo-dc-bot/.env --name dc-bot dc-bot
+            sudo docker image prune -f
