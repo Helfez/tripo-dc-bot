@@ -4,6 +4,9 @@ FROM node:18-alpine
 # 设置工作目录
 WORKDIR /app
 
+# 安装 Prisma 运行所需的系统依赖
+RUN apk add --no-cache openssl
+
 # 安装 ts-node
 RUN yarn global add ts-node typescript
 
