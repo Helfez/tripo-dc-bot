@@ -2,12 +2,12 @@ import { ENVS } from '../urls';
 
 // 奖品等级配置
 export const PRIZE_TIERS = {
-  first:       { name: '一等奖 - 2g黄金怪兽($400)',     prefix: 'JJMG1', total: 1,    dailyQuota: 0,  weight: 0 },
-  second:      { name: '二等奖 - JuJuBit伴手礼盒($100)', prefix: 'JJMG2', total: 10,   dailyQuota: 1,  weight: 5 },
-  third:       { name: '三等奖 - 4cm模型免单券($25)',     prefix: 'JJMG3', total: 100,  dailyQuota: 3,  weight: 15 },
-  discount_90: { name: '九折优惠券',                      prefix: 'JJM90', total: -1,   dailyQuota: -1, weight: 40 },  // -1 = 无限
-  discount_80: { name: '八折优惠券',                      prefix: 'JJM80', total: 1000, dailyQuota: 30, weight: 25 },
-  discount_70: { name: '七折优惠券',                      prefix: 'JJM70', total: 500,  dailyQuota: 15, weight: 15 },
+  first:       { name: 'Grand Prize - 2g Gold Monster ($400)',  prefix: 'JJMG1', total: 1,    dailyQuota: 0,  weight: 0 },
+  second:      { name: '2nd Prize - JuJuBit Gift Box ($100)',   prefix: 'JJMG2', total: 10,   dailyQuota: 1,  weight: 5 },
+  third:       { name: '3rd Prize - 4cm Model Coupon ($25)',    prefix: 'JJMG3', total: 100,  dailyQuota: 3,  weight: 15 },
+  discount_90: { name: '10% Off Coupon',                        prefix: 'JJM90', total: -1,   dailyQuota: -1, weight: 40 },  // -1 = unlimited
+  discount_80: { name: '20% Off Coupon',                        prefix: 'JJM80', total: 1000, dailyQuota: 30, weight: 25 },
+  discount_70: { name: '30% Off Coupon',                        prefix: 'JJM70', total: 500,  dailyQuota: 15, weight: 15 },
 } as const;
 
 export type PrizeTier = keyof typeof PRIZE_TIERS;
