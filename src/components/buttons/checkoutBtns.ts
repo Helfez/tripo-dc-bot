@@ -30,7 +30,7 @@ function makeCheckoutUrl(variantId: string, info?: CheckoutInfo): string {
     params.set('properties[Style]', info.styleName);
   }
   if (info?.designUrl) {
-    params.set('properties[Design Preview]', info.designUrl);
+    params.set('properties[Design_Preview]', info.designUrl);
   }
 
   const qs = params.toString();
