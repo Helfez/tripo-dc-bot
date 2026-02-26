@@ -16,12 +16,14 @@ const CATEGORY_DISPLAY: Record<ClassifyCategory, string> = {
   human: "\u{1F9D1} Human Portrait",
   creature: "\u{1F409} Creature",
   human_creature: "\u{1F9D1}\u200D\u{1F91D}\u200D\u{1F9D1}\u{1F409} Human + Creature",
+  card: "\u{1F0CF} Card Character",
 };
 
 const CATEGORY_TITLE: Record<ClassifyCategory, string> = {
   creature: "\u{1F409} JuJuMon \u2014 Creature",
   human: "\u{1F9D1} JuJuMon \u2014 Trainer",
   human_creature: "\u{1F409} JuJuMon \u2014 Creature",
+  card: "\u{1F0CF} JuJuMon \u2014 Card Extract",
 };
 
 export const data = new SlashCommandBuilder()

@@ -3,7 +3,7 @@ import tLog, {LOG_ACTIONS} from "../utils/logUtils";
 
 const AIHUBMIX_BASE = "https://aihubmix.com";
 
-export type ClassifyCategory = 'human' | 'creature' | 'human_creature';
+export type ClassifyCategory = 'human' | 'creature' | 'human_creature' | 'card';
 
 export interface ClassifyResult {
   category: ClassifyCategory;
@@ -12,13 +12,16 @@ export interface ClassifyResult {
 }
 
 const CLASSIFY_SYSTEM_PROMPT = `You are a visual classifier. Analyze the user's input (image and/or text) and determine the subject:
+- "card": The subject is a trading card (Pokémon card, TCG card, or any collectible card with a character inside a card frame)
 - "human": The subject is a human (person, portrait, character based on a real person)
 - "creature": The subject is a non-human creature (animal, monster, pet, fantasy beast)
 - "human_creature": The subject contains both a human AND a creature together
 
+IMPORTANT: If the image shows a trading card (has a card border/frame, stats, HP, energy symbols, etc.), always classify as "card" regardless of whether the character on the card is human or creature.
+
 Also determine if the image is a real photograph of a person (not anime, illustration, 3D render, or cartoon).
 
-Respond in JSON only: {"category": "human|creature|human_creature", "isRealPhoto": true/false, "reasoning": "brief explanation"}`;
+Respond in JSON only: {"category": "human|creature|human_creature|card", "isRealPhoto": true/false, "reasoning": "brief explanation"}`;
 
 /**
  * Classify user input (image and/or text) into human, creature, or human_creature
@@ -75,7 +78,7 @@ export async function classifyInput(
   const parsed = JSON.parse(raw);
   const category = parsed.category as string;
 
-  if (!['human', 'creature', 'human_creature'].includes(category)) {
+  if (!['human', 'creature', 'human_creature', 'card'].includes(category)) {
     throw new Error(`AI Router: unexpected category "${category}"`);
   }
 

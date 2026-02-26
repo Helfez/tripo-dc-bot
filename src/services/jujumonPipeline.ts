@@ -5,6 +5,8 @@ import tLog, {LOG_ACTIONS} from "../utils/logUtils";
 import {imageToBuffer} from "./tournamentPipeline";
 import {CREATURE_STYLE_PROMPT, HUMAN_STEP1_PROMPT, HUMAN_STEP2_PROMPT} from "./createPipeline";
 
+const CARD_EXTRACT_PROMPT = `Extract the character from this card image. Keep the structure sound. Remove the background, card frame, hands, sparkles, rings, and all decorative elements. Maintain the character's pose and generate a structurally sound 3D-style render with a clean white background.`;
+
 export interface JujumonRequest {
   prompt?: string;
   imageUrl?: string | null;
@@ -87,6 +89,18 @@ export async function runJujumonPipeline(
     }
 
     resultImageUrl = await generateWithGemini(apiKey, step2Prompt, step2InputUrl);
+  }
+  // --- Card workflow ---
+  else if (classResult.category === 'card') {
+    if (!imageUrl) {
+      throw new Error("Card workflow requires an image input");
+    }
+    const finalPrompt = prompt
+      ? `${CARD_EXTRACT_PROMPT}\n\nAdditional description: ${prompt}`
+      : CARD_EXTRACT_PROMPT;
+
+    tLog.log(LOG_ACTIONS.SYS, 'pipeline jujumon card extracting');
+    resultImageUrl = await generateWithGemini(apiKey, finalPrompt, imageUrl);
   }
   // --- Human + Creature: not yet supported, fall back to creature ---
   else {
