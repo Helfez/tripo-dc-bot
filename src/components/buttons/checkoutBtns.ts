@@ -17,13 +17,21 @@ const VARIANTS: VariantOption[] = [
   { label: '10cm $129.99', variantId: '62485711815027', emoji: '💎' },
 ];
 
-interface CheckoutInfo {
+export interface CheckoutInfo {
   styleName?: string;
-  designUrl?: string;  // Discord message link (short, stable)
+  designUrl?: string;
 }
 
-function makeCheckoutUrl(variantId: string): string {
-  return `${STORE_DOMAIN}/cart/${variantId}:1`;
+function makeCheckoutUrl(variantId: string, info?: CheckoutInfo): string {
+  const base = `${STORE_DOMAIN}/cart/${variantId}:1`;
+  if (!info?.designUrl && !info?.styleName) return base;
+
+  const note = [
+    info.styleName ? `Style: ${info.styleName}` : '',
+    info.designUrl ? `Design: ${info.designUrl}` : '',
+  ].filter(Boolean).join(' | ');
+
+  return `${base}?note=${encodeURIComponent(note)}`;
 }
 
 export function CheckoutBtnRows(info?: CheckoutInfo): ActionRowBuilder<ButtonBuilder>[] {
@@ -35,7 +43,7 @@ export function CheckoutBtnRows(info?: CheckoutInfo): ActionRowBuilder<ButtonBui
     const btn = new ButtonBuilder()
       .setLabel(v.label)
       .setStyle(ButtonStyle.Link)
-      .setURL(makeCheckoutUrl(v.variantId));
+      .setURL(makeCheckoutUrl(v.variantId, info));
     if (v.emoji) btn.setEmoji(v.emoji);
 
     if (i < 3) {
