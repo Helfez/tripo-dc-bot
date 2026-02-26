@@ -22,19 +22,8 @@ interface CheckoutInfo {
   designUrl?: string;  // Discord message link (short, stable)
 }
 
-function makeCheckoutUrl(variantId: string, info?: CheckoutInfo): string {
-  const base = `${STORE_DOMAIN}/cart/${variantId}:1`;
-  const params = new URLSearchParams();
-
-  if (info?.styleName) {
-    params.set('properties[Style]', info.styleName);
-  }
-  if (info?.designUrl) {
-    params.set('properties[Design_Preview]', info.designUrl);
-  }
-
-  const qs = params.toString();
-  return qs ? `${base}?${qs}` : base;
+function makeCheckoutUrl(variantId: string): string {
+  return `${STORE_DOMAIN}/cart/${variantId}:1`;
 }
 
 export function CheckoutBtnRows(info?: CheckoutInfo): ActionRowBuilder<ButtonBuilder>[] {
@@ -46,7 +35,7 @@ export function CheckoutBtnRows(info?: CheckoutInfo): ActionRowBuilder<ButtonBui
     const btn = new ButtonBuilder()
       .setLabel(v.label)
       .setStyle(ButtonStyle.Link)
-      .setURL(makeCheckoutUrl(v.variantId, info));
+      .setURL(makeCheckoutUrl(v.variantId));
     if (v.emoji) btn.setEmoji(v.emoji);
 
     if (i < 3) {
