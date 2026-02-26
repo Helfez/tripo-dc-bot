@@ -7,8 +7,16 @@ import * as poolService from './poolService';
 export type DrawResult =
   | { type: 'NO_CHANCE' }
   | { type: 'DAILY_LIMIT' }
-  | { type: 'NO_WIN' }
   | { type: 'WIN'; prize: { id: number; tier: PrizeTier; name: string; couponCode: string } };
+
+/** 保底发放九折券 */
+async function awardGuaranteed(userId: number, discordId: string): Promise<DrawResult> {
+  const prize = await prizeService.awardPrize(userId, discordId, 'discount_90');
+  return {
+    type: 'WIN',
+    prize: { id: prize.id, tier: 'discount_90', name: prize.prizeName, couponCode: prize.couponCode },
+  };
+}
 
 /** 核心抽奖逻辑 */
 export async function executeDraw(discordId: string, username?: string): Promise<DrawResult> {
@@ -30,18 +38,15 @@ export async function executeDraw(discordId: string, username?: string): Promise
   await poolService.ensureTodayPool();
 
   // 5. 首抽必中九折券
-  if (user.totalDraws === 1) { // consumeChance 已经 +1 了，所以第一次抽时 totalDraws=1
-    const prize = await prizeService.awardPrize(user.id, discordId, 'discount_90');
-    return {
-      type: 'WIN',
-      prize: { id: prize.id, tier: 'discount_90', name: prize.prizeName, couponCode: prize.couponCode },
-    };
+  if (user.totalDraws === 1) {
+    return awardGuaranteed(user.id, discordId);
   }
 
   // 6. 概率判定 (默认 1%)
   const prob = await getWinProbability();
   if (Math.random() >= prob) {
-    return { type: 'NO_WIN' };
+    // 未中大奖 → 保底九折券
+    return awardGuaranteed(user.id, discordId);
   }
 
   // 7. 检查每人每日中奖上限
@@ -49,16 +54,17 @@ export async function executeDraw(discordId: string, username?: string): Promise
   const maxUserDailyWins = await getConfigInt('max_user_daily_wins', 5);
   const userDailyWins = await prizeService.getUserDailyWins(user.id, today);
   if (userDailyWins >= maxUserDailyWins) {
-    return { type: 'NO_WIN' };
+    // 中奖次数达上限 → 保底九折券
+    return awardGuaranteed(user.id, discordId);
   }
 
   // 8. 决定奖品等级
   const tier = await selectPrizeTier(user.id, user.hasPurchased);
-  if (!tier) return { type: 'NO_WIN' };
+  if (!tier) return awardGuaranteed(user.id, discordId);
 
   // 9. 扣减奖池
   const deducted = await poolService.deductPool(tier);
-  if (!deducted) return { type: 'NO_WIN' };
+  if (!deducted) return awardGuaranteed(user.id, discordId);
 
   // 10. 发放奖品
   const prize = await prizeService.awardPrize(user.id, discordId, tier);

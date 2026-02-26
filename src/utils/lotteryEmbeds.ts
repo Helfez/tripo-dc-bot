@@ -78,16 +78,24 @@ export function buildDrawButton(): ActionRowBuilder<ButtonBuilder> {
 
 export function buildWinEmbed(prizeName: string, couponCode: string, tier: string): EmbedBuilder {
   const isGrand = tier === 'first' || tier === 'second' || tier === 'third';
+  const isGuaranteed = tier === 'discount_90';
   const color = isGrand ? 0xEF4444 : 0x10B981;
+
+  const title = isGuaranteed
+    ? "🎉 Congratulations! You've won a 10% OFF coupon!"
+    : '🎉 Congratulations! You Won!';
+
+  const description = isGuaranteed
+    ? `Coupon Code: \`${couponCode}\`\n\n` +
+      '💡 **Important:** If you close this message, you can always retrieve your code via `/me` or the **My Prizes** button in #user-center.'
+    : `You won: **${prizeName}**\n\n` +
+      `Coupon Code: \`${couponCode}\`\n\n` +
+      '💡 **Important:** If you close this message, you can always retrieve your code via `/me` or the **My Prizes** button in #user-center.';
 
   return new EmbedBuilder()
     .setColor(color)
-    .setTitle('🎉 Congratulations! You Won!')
-    .setDescription(
-      `You won: **${prizeName}**\n\n` +
-      `Coupon Code: \`${couponCode}\`\n\n` +
-      '💡 **Important:** If you close this message, you can always retrieve your code via `/me` or the **My Prizes** button in #user-center.'
-    )
+    .setTitle(title)
+    .setDescription(description)
     .setFooter({ text: 'This message is only visible to you' })
     .setTimestamp();
 }

@@ -1,8 +1,7 @@
 import { ButtonInteraction, Client } from 'discord.js';
 import { BtnFormat } from '../utils/constants';
 import * as drawService from '../services/lottery/drawService';
-import * as userService from '../services/lottery/userService';
-import { buildWinEmbed, buildWinButtons, buildNoWinEmbed } from '../utils/lotteryEmbeds';
+import { buildWinEmbed, buildWinButtons } from '../utils/lotteryEmbeds';
 import tLog, { LOG_ACTIONS } from '../utils/logUtils';
 
 export const name = BtnFormat.BTN_LUCKY_DRAW;
@@ -20,13 +19,6 @@ export async function onHandler(client: Client, interaction: ButtonInteraction) 
         const embed = buildWinEmbed(result.prize.name, result.prize.couponCode, result.prize.tier);
         const buttons = buildWinButtons(result.prize.id);
         await interaction.editReply({ embeds: [embed], components: [buttons] });
-        break;
-      }
-
-      case 'NO_WIN': {
-        const { user } = await userService.getUserStats(discordId);
-        const embed = buildNoWinEmbed(user.drawChances);
-        await interaction.editReply({ embeds: [embed] });
         break;
       }
 
