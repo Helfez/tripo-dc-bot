@@ -318,7 +318,7 @@ Only output the final English prompt.`,
     imageModel: 'gemini-2.5-flash-image',
     imagePromptPrefix: '随机保留原图中的 1 个动物头像并只能生成白底图，然后',
     refinement: {
-      model: 'gemini-3-pro-image-preview',
+      model: 'gemini-3.1-flash-image-preview',
     },
     systemPrompt: `你是一个提示词生成师，你需要按如下要求生成提示词。
 

@@ -26,12 +26,19 @@ function makeCheckoutUrl(variantId: string, info?: CheckoutInfo): string {
   const base = `${STORE_DOMAIN}/cart/${variantId}:1`;
   if (!info?.designUrl && !info?.styleName) return base;
 
-  const note = [
-    info.styleName ? `Style: ${info.styleName}` : '',
-    info.designUrl ? `Design: ${info.designUrl}` : '',
-  ].filter(Boolean).join(' | ');
+  const params = new URLSearchParams();
 
-  return `${base}?note=${encodeURIComponent(note)}`;
+  if (info?.styleName) {
+    // Strip emoji and special chars for Shopify compatibility
+    const cleanStyle = info.styleName.replace(/[^\w\s\-]/g, '').trim();
+    if (cleanStyle) params.set('properties[Style]', cleanStyle);
+  }
+  if (info?.designUrl) {
+    params.set('properties[Design]', info.designUrl);
+  }
+
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : base;
 }
 
 export function CheckoutBtnRows(info?: CheckoutInfo): ActionRowBuilder<ButtonBuilder>[] {

@@ -18,7 +18,7 @@ export async function generateWithGemini(
   prompt: string,
   primaryImageUrl?: string | null,
   styleImageUrl?: string | null,
-  model: string = "gemini-3-pro-image-preview",
+  model: string = "gemini-3.1-flash-image-preview",
 ): Promise<string> {
   const MAX_RETRIES = 2;
   let lastError: Error | null = null;
@@ -48,7 +48,7 @@ async function _callGeminiOnce(
   prompt: string,
   primaryImageUrl?: string | null,
   styleImageUrl?: string | null,
-  model: string = "gemini-3-pro-image-preview",
+  model: string = "gemini-3.1-flash-image-preview",
 ): Promise<string> {
   const content: any[] = [
     { type: "text", text: prompt }
