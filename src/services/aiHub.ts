@@ -20,6 +20,36 @@ export async function generateWithGemini(
   styleImageUrl?: string | null,
   model: string = "gemini-3-pro-image-preview",
 ): Promise<string> {
+  const MAX_RETRIES = 2;
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      tLog.log(LOG_ACTIONS.SYS, `Gemini retry attempt ${attempt}/${MAX_RETRIES}`);
+    }
+
+    try {
+      const result = await _callGeminiOnce(apiKey, prompt, primaryImageUrl, styleImageUrl, model);
+      return result;
+    } catch (err: any) {
+      lastError = err;
+      const msg = err?.message || '';
+      const isRetryable = msg.includes('timeout') || msg.includes('No image data') || msg.includes('500') || msg.includes('503');
+      if (!isRetryable || attempt === MAX_RETRIES) break;
+      tLog.logError(LOG_ACTIONS.SYS, `Gemini attempt ${attempt} failed:`, msg.substring(0, 120));
+    }
+  }
+
+  throw lastError!;
+}
+
+async function _callGeminiOnce(
+  apiKey: string,
+  prompt: string,
+  primaryImageUrl?: string | null,
+  styleImageUrl?: string | null,
+  model: string = "gemini-3-pro-image-preview",
+): Promise<string> {
   const content: any[] = [
     { type: "text", text: prompt }
   ];
