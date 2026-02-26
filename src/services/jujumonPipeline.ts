@@ -5,7 +5,7 @@ import tLog, {LOG_ACTIONS} from "../utils/logUtils";
 import {imageToBuffer} from "./tournamentPipeline";
 import {CREATURE_STYLE_PROMPT, HUMAN_STEP1_PROMPT, HUMAN_STEP2_PROMPT} from "./createPipeline";
 
-const CARD_EXTRACT_PROMPT = `Extract the character from this card image. Keep the structure sound. Remove the background, card frame, hands, sparkles, rings, and all decorative elements. Maintain the character's pose and generate a structurally sound 3D-style render with a clean white background.`;
+const CARD_EXTRACT_PROMPT = `#card\n抠出卡片里的角色，保持结构合理，移除背景，卡牌，人手，闪光，环线等背景和装饰元素，然后保持姿势生成结构合理，转3d，设置白色渲染图背景`;
 
 export interface JujumonRequest {
   prompt?: string;
