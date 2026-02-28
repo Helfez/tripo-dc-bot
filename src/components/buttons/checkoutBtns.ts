@@ -9,12 +9,12 @@ interface VariantOption {
 }
 
 const VARIANTS: VariantOption[] = [
-  { label: '4cm $29.99',  variantId: '62418107728243',  emoji: '🔹' },
-  { label: '5cm $49.99',  variantId: '62418108809587',  emoji: '🔹' },
-  { label: '6cm $59.99',  variantId: '62485711716723',  emoji: '⭐' },
-  { label: '7cm $89.99',  variantId: '62485711749491',  emoji: '🔸' },
-  { label: '8cm $109.99', variantId: '62485711782259',  emoji: '🔸' },
-  { label: '10cm $129.99', variantId: '62485711815027', emoji: '💎' },
+  { label: '4cm $29.99',  variantId: '62577234542963',  emoji: '🔹' },
+  { label: '5cm $49.99',  variantId: '62577234575731',  emoji: '🔹' },
+  { label: '6cm $59.99',  variantId: '62577234510195',  emoji: '⭐' },
+  { label: '7cm $89.99',  variantId: '62577234608499',  emoji: '🔸' },
+  { label: '8cm $109.99', variantId: '62577234641267',  emoji: '🔸' },
+  { label: '10cm $129.99', variantId: '62577234674035', emoji: '💎' },
 ];
 
 export interface CheckoutInfo {
