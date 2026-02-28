@@ -75,16 +75,41 @@
   .modal { background: #fff; border-radius: 12px; padding: 24px; width: 90%; max-width: 500px; }
   .modal h3 { margin-bottom: 16px; }
   .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
-  .hidden { display: none; }
+  .hidden { display: none !important; }
   .task-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
   .back-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #666; }
   .remark-text { font-size: 12px; color: #888; font-style: italic; }
+  /* Login */
+  .login-overlay { position: fixed; inset: 0; background: #1a1a2e; display: flex; align-items: center; justify-content: center; z-index: 200; }
+  .login-box { background: #fff; border-radius: 12px; padding: 32px; width: 340px; box-shadow: 0 8px 32px rgba(0,0,0,.3); }
+  .login-box h2 { margin-bottom: 20px; text-align: center; }
+  .login-box input[type="text"], .login-box input[type="password"] { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; margin-bottom: 12px; }
+  .login-box .btn { width: 100%; padding: 10px; font-size: 15px; }
+  .login-error { color: #e74c3c; font-size: 13px; text-align: center; margin-bottom: 8px; }
+  .logout-btn { background: none; border: 1px solid rgba(255,255,255,.3); color: #aaa; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: auto; }
+  .logout-btn:hover { color: #fff; border-color: rgba(255,255,255,.6); }
 </style>
 </head>
 <body>
 
+<!-- Login Screen -->
+<div id="login-overlay" class="login-overlay">
+  <div class="login-box">
+    <h2>Login</h2>
+    <div id="login-error" class="login-error hidden"></div>
+    <form onsubmit="doLogin(event)">
+      <input type="text" id="login-user" placeholder="Username" required>
+      <input type="password" id="login-pass" placeholder="Password" required>
+      <button type="submit" class="btn btn-primary">Sign In</button>
+    </form>
+  </div>
+</div>
+
+<div id="app-wrapper" class="hidden">
+
 <div class="header">
   <h1>Workflow Test Platform</h1>
+  <button class="logout-btn" onclick="doLogout()">Logout</button>
 </div>
 
 <div class="tabs">
@@ -185,11 +210,75 @@
   </div>
 </div>
 
+</div> <!-- /app-wrapper -->
+
 <script>
 const API = '';
 let selectedWorkflow = null;
 let pollInterval = null;
 let currentTaskFinished = false;
+let authToken = sessionStorage.getItem('tp_token') || '';
+
+// ===== Auth =====
+function authHeaders() {
+  return { 'Authorization': 'Bearer ' + authToken };
+}
+function authFetch(url, opts = {}) {
+  opts.headers = Object.assign({}, opts.headers || {}, authHeaders());
+  return fetch(url, opts);
+}
+function imgUrl(path) {
+  return path + (path.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(authToken);
+}
+
+async function doLogin(e) {
+  e.preventDefault();
+  const user = document.getElementById('login-user').value;
+  const pass = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  errEl.classList.add('hidden');
+
+  const res = await fetch(API + '/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: user, password: pass }),
+  });
+  if (!res.ok) {
+    errEl.textContent = 'Invalid username or password';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  const data = await res.json();
+  authToken = data.token;
+  sessionStorage.setItem('tp_token', authToken);
+  showApp();
+}
+
+function doLogout() {
+  authToken = '';
+  sessionStorage.removeItem('tp_token');
+  document.getElementById('app-wrapper').classList.add('hidden');
+  document.getElementById('login-overlay').classList.remove('hidden');
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+}
+
+async function showApp() {
+  // Verify token is still valid
+  const res = await authFetch(API + '/api/workflows');
+  if (!res.ok) {
+    doLogout();
+    return;
+  }
+  document.getElementById('login-overlay').classList.add('hidden');
+  document.getElementById('app-wrapper').classList.remove('hidden');
+  loadCases();
+}
+
+// Check existing session on load
+if (authToken) {
+  showApp();
+}
 
 // ===== Tab Navigation =====
 document.querySelectorAll('.tab').forEach(tab => {
@@ -207,7 +296,7 @@ document.querySelectorAll('.tab').forEach(tab => {
 
 // ===== Cases =====
 async function loadCases() {
-  const res = await fetch(API + '/api/cases');
+  const res = await authFetch(API + '/api/cases');
   const cases = await res.json();
   const tbody = document.getElementById('cases-table');
   const empty = document.getElementById('cases-empty');
@@ -224,7 +313,7 @@ async function loadCases() {
       <td>${c.id}</td>
       <td>${esc(c.name)}</td>
       <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.prompt || '-')}</td>
-      <td>${c.imagePath ? `<img class="img-thumb" src="/uploads/${c.imagePath.split('/').pop()}" onerror="this.style.display='none'">` : '-'}</td>
+      <td>${c.imagePath ? `<img class="img-thumb" src="${imgUrl('/uploads/' + c.imagePath.split('/').pop())}" onerror="this.style.display='none'">` : '-'}</td>
       <td class="remark-text">${esc(c.remark || '-')}</td>
       <td>${fmtDate(c.createdAt)}</td>
       <td><button class="btn btn-danger btn-sm" onclick="deleteCase(${c.id})">Delete</button></td>
@@ -243,7 +332,7 @@ async function submitCase(e) {
     alert('Please provide at least a prompt or an image.');
     return;
   }
-  const res = await fetch(API + '/api/cases', { method: 'POST', body: fd });
+  const res = await authFetch(API + '/api/cases', { method: 'POST', body: fd });
   if (!res.ok) { const err = await res.json(); alert(err.error); return; }
   hideAddCaseModal();
   loadCases();
@@ -251,13 +340,13 @@ async function submitCase(e) {
 
 async function deleteCase(id) {
   if (!confirm('Delete this test case?')) return;
-  await fetch(API + '/api/cases/' + id, { method: 'DELETE' });
+  await authFetch(API + '/api/cases/' + id, { method: 'DELETE' });
   loadCases();
 }
 
 // ===== Workflows =====
 async function loadWorkflows() {
-  const res = await fetch(API + '/api/workflows');
+  const res = await authFetch(API + '/api/workflows');
   const workflows = await res.json();
   const container = document.getElementById('workflow-list');
 
@@ -291,7 +380,7 @@ async function createTask() {
 
   const remark = document.getElementById('task-remark').value || '';
 
-  const res = await fetch(API + '/api/tasks', {
+  const res = await authFetch(API + '/api/tasks', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ workflowId: selectedWorkflow, remark }),
@@ -320,7 +409,7 @@ async function createTask() {
 
 // ===== Tasks =====
 async function loadTasks() {
-  const res = await fetch(API + '/api/tasks');
+  const res = await authFetch(API + '/api/tasks');
   const data = await res.json();
   const tasks = data.tasks;
   const tbody = document.getElementById('tasks-table');
@@ -368,7 +457,7 @@ async function showTaskDetail(taskId) {
   currentTaskFinished = false;
 
   async function refresh() {
-    const res = await fetch(API + '/api/tasks/' + taskId);
+    const res = await authFetch(API + '/api/tasks/' + taskId);
     const task = await res.json();
 
     document.getElementById('detail-title').textContent = `Task #${task.id} — ${task.workflowName}`;
@@ -403,8 +492,8 @@ async function showTaskDetail(taskId) {
 
     const container = document.getElementById('detail-results');
     container.innerHTML = task.results.map(r => {
-      const caseImg = r.case?.imagePath ? `/uploads/${r.case.imagePath.split('/').pop()}` : null;
-      const resultImg = (r.status === 'success' && r.resultImagePath) ? `/results/${r.resultImagePath}` : null;
+      const caseImg = r.case?.imagePath ? imgUrl(`/uploads/${r.case.imagePath.split('/').pop()}`) : null;
+      const resultImg = (r.status === 'success' && r.resultImagePath) ? imgUrl(`/results/${r.resultImagePath}`) : null;
 
       return `
       <div class="result-card ${r.review === 'skip' ? 'skipped' : ''}">
@@ -459,7 +548,7 @@ async function showTaskDetail(taskId) {
 }
 
 async function setReview(resultId, review) {
-  await fetch(API + '/api/results/' + resultId + '/review', {
+  await authFetch(API + '/api/results/' + resultId + '/review', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ review }),
@@ -468,7 +557,7 @@ async function setReview(resultId, review) {
   const title = document.getElementById('detail-title').textContent;
   const taskId = parseInt(title.match(/#(\d+)/)?.[1] || '0');
   if (taskId) {
-    const res = await fetch(API + '/api/tasks/' + taskId);
+    const res = await authFetch(API + '/api/tasks/' + taskId);
     const task = await res.json();
 
     // Update review summary
@@ -494,8 +583,10 @@ async function setReview(resultId, review) {
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function fmtDate(iso) { if (!iso) return '-'; const d = new Date(iso); return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
 
-// Initial load
-loadCases();
+// Initial load — only if already has a token
+if (authToken) {
+  showApp();
+}
 </script>
 </body>
 </html>

@@ -1,7 +1,8 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
+import * as crypto from 'crypto';
 import * as path from 'path';
 import * as fs from 'fs';
 import { envInit } from '../services/urls';
@@ -19,23 +20,58 @@ const app = express();
 
 app.use(express.json());
 
-// Static file serving for uploads and results
+// ---- Auth ----
+const AUTH_USER = 'vast2026';
+const AUTH_PASS = 'jujubitagent';
+const activeSessions = new Set<string>();
+
+app.post('/api/login', (req: Request, res: Response) => {
+  const { username, password } = req.body;
+  if (username === AUTH_USER && password === AUTH_PASS) {
+    const token = crypto.randomBytes(32).toString('hex');
+    activeSessions.add(token);
+    res.json({ token });
+  } else {
+    res.status(401).json({ error: 'Invalid credentials' });
+  }
+});
+
+function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token || !activeSessions.has(token)) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+  next();
+}
+
+// Static file serving for uploads and results (behind auth via query token)
 const uploadsDir = path.resolve(process.cwd(), 'data/testplatform/uploads');
 const resultsDir = path.resolve(process.cwd(), 'data/testplatform/results');
 for (const dir of [uploadsDir, resultsDir]) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
-app.use('/uploads', express.static(uploadsDir));
-app.use('/results', express.static(resultsDir));
 
-// Serve the frontend
+function staticAuth(req: Request, res: Response, next: NextFunction) {
+  const token = req.query.token as string;
+  if (!token || !activeSessions.has(token)) {
+    res.status(401).send('Unauthorized');
+    return;
+  }
+  next();
+}
+
+app.use('/uploads', staticAuth, express.static(uploadsDir));
+app.use('/results', staticAuth, express.static(resultsDir));
+
+// Serve the frontend (public, login page included)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// API routes
-app.use('/api/cases', casesRouter);
-app.use('/api/workflows', workflowsRouter);
-app.use('/api/tasks', tasksRouter);
-app.use('/api/results', resultsRouter);
+// API routes (all behind auth)
+app.use('/api/cases', authMiddleware, casesRouter);
+app.use('/api/workflows', authMiddleware, workflowsRouter);
+app.use('/api/tasks', authMiddleware, tasksRouter);
+app.use('/api/results', authMiddleware, resultsRouter);
 
 // Start
 async function main() {

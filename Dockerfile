@@ -23,5 +23,7 @@ RUN npx prisma generate
 # 复制源代码
 COPY . .
 
-# 启动命令
-CMD ["yarn", "start"]
+# 启动命令 (main bot + test platform)
+COPY entrypoint.sh ./
+RUN chmod +x entrypoint.sh
+CMD ["./entrypoint.sh"]
