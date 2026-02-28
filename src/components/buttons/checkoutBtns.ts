@@ -8,7 +8,16 @@ interface VariantOption {
   emoji?: string;
 }
 
-const VARIANTS: VariantOption[] = [
+const DEFAULT_VARIANTS: VariantOption[] = [
+  { label: '4cm $29.99',  variantId: '62418107728243',  emoji: '🔹' },
+  { label: '5cm $49.99',  variantId: '62418108809587',  emoji: '🔹' },
+  { label: '6cm $59.99',  variantId: '62485711716723',  emoji: '⭐' },
+  { label: '7cm $89.99',  variantId: '62485711749491',  emoji: '🔸' },
+  { label: '8cm $109.99', variantId: '62485711782259',  emoji: '🔸' },
+  { label: '10cm $129.99', variantId: '62485711815027', emoji: '💎' },
+];
+
+export const JUJUMON_VARIANTS: VariantOption[] = [
   { label: '4cm $29.99',  variantId: '62577234542963',  emoji: '🔹' },
   { label: '5cm $49.99',  variantId: '62577234575731',  emoji: '🔹' },
   { label: '6cm $59.99',  variantId: '62577234510195',  emoji: '⭐' },
@@ -34,12 +43,13 @@ function makeCheckoutUrl(variantId: string, info?: CheckoutInfo): string {
   return `${base}?note=${encodeURIComponent(note)}`;
 }
 
-export function CheckoutBtnRows(info?: CheckoutInfo): ActionRowBuilder<ButtonBuilder>[] {
+export function CheckoutBtnRows(info?: CheckoutInfo, variants?: VariantOption[]): ActionRowBuilder<ButtonBuilder>[] {
+  const list = variants || DEFAULT_VARIANTS;
   const row1 = new ActionRowBuilder<ButtonBuilder>();
   const row2 = new ActionRowBuilder<ButtonBuilder>();
 
-  for (let i = 0; i < VARIANTS.length; i++) {
-    const v = VARIANTS[i];
+  for (let i = 0; i < list.length; i++) {
+    const v = list[i];
     const btn = new ButtonBuilder()
       .setLabel(v.label)
       .setStyle(ButtonStyle.Link)

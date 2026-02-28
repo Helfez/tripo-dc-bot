@@ -10,7 +10,7 @@ import {ClassifyCategory} from "../services/aiRouter";
 import {runJujumonPipeline} from "../services/jujumonPipeline";
 import tLog, {LOG_ACTIONS} from "../utils/logUtils";
 import * as workService from "../services/lottery/workService";
-import {CheckoutBtnRows} from "../components/buttons/checkoutBtns";
+import {CheckoutBtnRows, JUJUMON_VARIANTS} from "../components/buttons/checkoutBtns";
 
 const CATEGORY_DISPLAY: Record<ClassifyCategory, string> = {
   human: "\u{1F9D1} Human Portrait",
@@ -108,7 +108,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const msg = await interaction.fetchReply();
     const designUrl = `https://discord.com/channels/${interaction.guildId}/${msg.channelId}/${msg.id}`;
     const styleName = CATEGORY_TITLE[result.category];
-    const checkoutRows = CheckoutBtnRows({ styleName, designUrl });
+    const checkoutRows = CheckoutBtnRows({ styleName, designUrl }, JUJUMON_VARIANTS);
     await interaction.editReply({ components: checkoutRows });
 
     // Record work + auto +1 lottery chance (non-fatal)
