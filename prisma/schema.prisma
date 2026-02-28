@@ -139,6 +139,8 @@ model TestResult {
   error           String   @default("")
   durationMs      Int      @default(0) @map("duration_ms")
   review          String   @default("none")
+  aiReview        String   @default("none") @map("ai_review")
+  aiReason        String   @default("") @map("ai_reason")
   createdAt       DateTime @default(now()) @map("created_at")
 
   task   TestTask @relation(fields: [taskId], references: [id])

@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as db from './db';
 import { runWorkflow, getWorkflowDef } from './pipelineAdapter';
+import { scoreResult } from './aiScorer';
 import tLog, { LOG_ACTIONS } from '../utils/logUtils';
 
 const MAX_CONCURRENT_TASKS = 2;
@@ -89,6 +90,14 @@ export async function startTask(taskId: number): Promise<void> {
           });
           await db.incrementTaskProgress(taskId, true);
           tLog.log(LOG_ACTIONS.SYS, `[test-platform] task ${taskId} case ${testCase.id} success (${durationMs}ms)`);
+
+          // Fire-and-forget AI scoring
+          scoreResult(
+            result.id, task.workflowId, task.workflowName,
+            testCase.prompt || undefined, testCase.imagePath || undefined, filePath,
+          ).catch(err => {
+            tLog.logError(LOG_ACTIONS.SYS, `[test-platform] AI score failed for result ${result.id}:`, err?.message);
+          });
         } catch (err: any) {
           const durationMs = Date.now() - start;
           const errMsg = err?.message || String(err);

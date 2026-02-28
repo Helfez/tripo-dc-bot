@@ -126,6 +126,7 @@ export async function generateTextWithVision(
   userPrompt: string,
   imageUrl?: string | null,
   model: string = "gemini-3-flash-preview",
+  temperature: number = 0.7,
 ): Promise<string> {
   const userContent: any[] = [];
 
@@ -147,7 +148,7 @@ export async function generateTextWithVision(
       { role: "system", content: systemPrompt },
       { role: "user", content: userContent },
     ],
-    temperature: 0.7,
+    temperature,
   };
 
   tLog.log(LOG_ACTIONS.SYS, "Vision text request model:", model);

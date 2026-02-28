@@ -3,8 +3,8 @@ import * as path from 'path';
 import { runJujumonPipeline } from '../services/jujumonPipeline';
 import { runCreatePipeline } from '../services/createPipeline';
 import { runTournamentPipeline } from '../services/tournamentPipeline';
-import { WorkflowType } from '../services/workflowConfig';
-import { TournamentTemplate } from '../services/tournamentConfig';
+import { WorkflowType, WORKFLOW_CHOICES } from '../services/workflowConfig';
+import { TournamentTemplate, TOURNAMENT_CHOICES } from '../services/tournamentConfig';
 
 export interface WorkflowDef {
   id: string;
@@ -12,23 +12,11 @@ export interface WorkflowDef {
   pipeline: 'jujumon' | 'create' | 'tournament';
 }
 
+// Auto-build from config files so new workflows are picked up automatically
 export const ALL_WORKFLOWS: WorkflowDef[] = [
-  // JuJuMon pipeline
   { id: 'jujumon_auto', name: 'JuJuMon (Auto-classify)', pipeline: 'jujumon' },
-  // Create pipeline
-  { id: 'create_board_game', name: 'TRPG Style', pipeline: 'create' },
-  { id: 'create_chibi', name: 'Chibi Style', pipeline: 'create' },
-  { id: 'create_scale_1_7', name: '1:7 Figure Style', pipeline: 'create' },
-  { id: 'create_creative', name: 'Creative Style', pipeline: 'create' },
-  { id: 'create_jujumon_creature', name: 'JuJuMon Creature', pipeline: 'create' },
-  { id: 'create_jujumon_trainer', name: 'JuJuMon Trainer', pipeline: 'create' },
-  // Tournament pipeline
-  { id: 'tournament_liquid_dragon', name: 'Liquid Dragon', pipeline: 'tournament' },
-  { id: 'tournament_harry_sculpt', name: 'Head Sculpt Harry', pipeline: 'tournament' },
-  { id: 'tournament_foods_cc', name: 'Foods CC', pipeline: 'tournament' },
-  { id: 'tournament_animal_ashley', name: 'Animal Ashley', pipeline: 'tournament' },
-  { id: 'tournament_funko_pop', name: 'Funko Pop', pipeline: 'tournament' },
-  { id: 'tournament_animal_beads', name: 'Animal Beads', pipeline: 'tournament' },
+  ...WORKFLOW_CHOICES.map(w => ({ id: `create_${w.value}`, name: w.name, pipeline: 'create' as const })),
+  ...TOURNAMENT_CHOICES.map(t => ({ id: `tournament_${t.value}`, name: t.name, pipeline: 'tournament' as const })),
 ];
 
 export function getWorkflowDef(workflowId: string): WorkflowDef | undefined {

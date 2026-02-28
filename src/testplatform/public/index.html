@@ -46,6 +46,17 @@
   .badge-pass { background: #d4edda; color: #155724; }
   .badge-reject { background: #f8d7da; color: #721c24; }
   .badge-skip { background: #e2e3e5; color: #6c757d; text-decoration: line-through; }
+  .ai-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; transition: all .2s; }
+  .ai-badge-scoring { background: #e2e3e5; color: #666; cursor: default; }
+  .ai-badge-pass { background: #d4edda; color: #155724; }
+  .ai-badge-pending { background: #fff3cd; color: #856404; }
+  .ai-badge-reject { background: #f8d7da; color: #721c24; }
+  .ai-badge-error { background: #f8d7da; color: #721c24; }
+  .ai-reason { font-size: 12px; color: #666; margin-top: 4px; padding: 6px 8px; background: #f9f9f9; border-radius: 4px; display: none; word-break: break-all; }
+  .ai-reason.show { display: block; }
+  .ai-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+  .btn-rescore { padding: 2px 8px; font-size: 11px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; color: #666; }
+  .btn-rescore:hover { background: #e0e0e0; }
   .progress-bar { width: 100%; height: 6px; background: #eee; border-radius: 3px; overflow: hidden; }
   .progress-fill { height: 100%; background: #4cc9f0; transition: width .3s; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(560px, 1fr)); gap: 16px; }
@@ -474,18 +485,7 @@ async function showTaskDetail(taskId) {
 
     // Review summary
     if (isFinished) {
-      const pass = task.results.filter(r => r.review === 'pass').length;
-      const pending = task.results.filter(r => r.review === 'pending').length;
-      const reject = task.results.filter(r => r.review === 'reject').length;
-      const skip = task.results.filter(r => r.review === 'skip').length;
-      const unreviewed = task.results.filter(r => r.review === 'none' && r.status === 'success').length;
-      const scored = pass + reject;
-      const passRate = scored > 0 ? Math.round(pass / scored * 100) : '-';
-      document.getElementById('detail-review-summary').innerHTML =
-        `Review: <span style="color:#27ae60">${pass} pass</span> / <span style="color:#f39c12">${pending} pending</span> / <span style="color:#e74c3c">${reject} reject</span>` +
-        (skip > 0 ? ` / <span style="color:#6c757d">${skip} skipped</span>` : '') +
-        (unreviewed > 0 ? ` / <span style="color:#999">${unreviewed} unreviewed</span>` : '') +
-        (scored > 0 ? ` &mdash; <strong>Pass rate: ${passRate}%</strong> (${pass}/${scored})` : '');
+      renderReviewSummary(task.results);
     } else {
       document.getElementById('detail-review-summary').textContent = '';
     }
@@ -521,6 +521,15 @@ async function showTaskDetail(taskId) {
           <p><span class="badge badge-${r.status}">${r.status}</span> ${r.durationMs ? (r.durationMs/1000).toFixed(1) + 's' : ''}</p>
           ${r.case?.prompt ? `<p style="font-size:12px;color:#999;margin-top:4px"><strong>Input text:</strong> ${esc(r.case.prompt.substring(0, 120))}${r.case.prompt.length > 120 ? '...' : ''}</p>` : ''}
           ${r.case?.remark ? `<p class="remark-text">${esc(r.case.remark)}</p>` : ''}
+          ${r.aiReview && r.aiReview !== 'none' ? `
+            <div class="ai-row">
+              ${r.aiReview === 'scoring'
+                ? `<span class="ai-badge ai-badge-scoring">AI Scoring...</span>`
+                : `<button class="ai-badge ai-badge-${r.aiReview}" onclick="toggleAiReason(${r.id})">AI: ${r.aiReview.charAt(0).toUpperCase() + r.aiReview.slice(1)}</button>`}
+              ${r.status === 'success' ? `<button class="btn-rescore" onclick="aiRescore(${r.id})">Re-score</button>` : ''}
+            </div>
+            ${r.aiReason ? `<div class="ai-reason" id="ai-reason-${r.id}">${esc(r.aiReason)}</div>` : ''}
+          ` : ''}
           ${isFinished && r.status === 'success' ? `
             <div class="review-btns">
               <button class="btn btn-sm btn-success ${r.review === 'pass' ? 'active' : 'btn-outline'}" onclick="setReview(${r.id}, 'pass')">Pass</button>
@@ -561,22 +570,58 @@ async function setReview(resultId, review) {
     const task = await res.json();
 
     // Update review summary
-    const pass = task.results.filter(r => r.review === 'pass').length;
-    const pending = task.results.filter(r => r.review === 'pending').length;
-    const reject = task.results.filter(r => r.review === 'reject').length;
-    const skip = task.results.filter(r => r.review === 'skip').length;
-    const unreviewed = task.results.filter(r => r.review === 'none' && r.status === 'success').length;
-    const scored = pass + reject;
-    const passRate = scored > 0 ? Math.round(pass / scored * 100) : '-';
-    document.getElementById('detail-review-summary').innerHTML =
-      `Review: <span style="color:#27ae60">${pass} pass</span> / <span style="color:#f39c12">${pending} pending</span> / <span style="color:#e74c3c">${reject} reject</span>` +
-      (skip > 0 ? ` / <span style="color:#6c757d">${skip} skipped</span>` : '') +
-      (unreviewed > 0 ? ` / <span style="color:#999">${unreviewed} unreviewed</span>` : '') +
-      (scored > 0 ? ` &mdash; <strong>Pass rate: ${passRate}%</strong> (${pass}/${scored})` : '');
+    renderReviewSummary(task.results);
 
     // Refresh the detail view to update card states
     showTaskDetail(taskId);
   }
+}
+
+function renderReviewSummary(results) {
+  const pass = results.filter(r => r.review === 'pass').length;
+  const pending = results.filter(r => r.review === 'pending').length;
+  const reject = results.filter(r => r.review === 'reject').length;
+  const skip = results.filter(r => r.review === 'skip').length;
+  const unreviewed = results.filter(r => r.review === 'none' && r.status === 'success').length;
+  const scored = pass + reject;
+  const passRate = scored > 0 ? Math.round(pass / scored * 100) : '-';
+
+  // AI stats
+  const aiPass = results.filter(r => r.aiReview === 'pass').length;
+  const aiPending = results.filter(r => r.aiReview === 'pending').length;
+  const aiReject = results.filter(r => r.aiReview === 'reject').length;
+  const aiScoring = results.filter(r => r.aiReview === 'scoring').length;
+  const aiError = results.filter(r => r.aiReview === 'error').length;
+  const aiScored = aiPass + aiReject;
+  const aiPassRate = aiScored > 0 ? Math.round(aiPass / aiScored * 100) : '-';
+  const hasAi = aiPass + aiPending + aiReject + aiScoring + aiError > 0;
+
+  let html = `Review: <span style="color:#27ae60">${pass} pass</span> / <span style="color:#f39c12">${pending} pending</span> / <span style="color:#e74c3c">${reject} reject</span>` +
+    (skip > 0 ? ` / <span style="color:#6c757d">${skip} skipped</span>` : '') +
+    (unreviewed > 0 ? ` / <span style="color:#999">${unreviewed} unreviewed</span>` : '') +
+    (scored > 0 ? ` &mdash; <strong>Pass rate: ${passRate}%</strong> (${pass}/${scored})` : '');
+
+  if (hasAi) {
+    html += `<br>AI: <span style="color:#27ae60">${aiPass} pass</span> / <span style="color:#f39c12">${aiPending} pending</span> / <span style="color:#e74c3c">${aiReject} reject</span>`;
+    if (aiScoring > 0) html += ` / <span style="color:#666">${aiScoring} scoring</span>`;
+    if (aiError > 0) html += ` / <span style="color:#e74c3c">${aiError} error</span>`;
+    if (aiScored > 0) html += ` &mdash; <strong>AI Pass rate: ${aiPassRate}%</strong> (${aiPass}/${aiScored})`;
+  }
+
+  document.getElementById('detail-review-summary').innerHTML = html;
+}
+
+function toggleAiReason(resultId) {
+  const el = document.getElementById('ai-reason-' + resultId);
+  if (el) el.classList.toggle('show');
+}
+
+async function aiRescore(resultId) {
+  await authFetch(API + '/api/results/' + resultId + '/ai-rescore', { method: 'POST' });
+  // Refresh current task detail
+  const title = document.getElementById('detail-title').textContent;
+  const taskId = parseInt(title.match(/#(\d+)/)?.[1] || '0');
+  if (taskId) showTaskDetail(taskId);
 }
 
 // ===== Helpers =====

@@ -73,7 +73,7 @@ export async function createResults(taskId: number, caseIds: number[]) {
   });
 }
 
-export async function updateResult(id: number, data: { status?: string; resultImagePath?: string; error?: string; durationMs?: number; review?: string }) {
+export async function updateResult(id: number, data: { status?: string; resultImagePath?: string; error?: string; durationMs?: number; review?: string; aiReview?: string; aiReason?: string }) {
   return getPrisma().testResult.update({ where: { id }, data });
 }
 
@@ -82,5 +82,12 @@ export async function getResultsByTask(taskId: number) {
     where: { taskId },
     include: { case: true },
     orderBy: { id: 'asc' },
+  });
+}
+
+export async function getResult(id: number) {
+  return getPrisma().testResult.findUnique({
+    where: { id },
+    include: { case: true, task: true },
   });
 }
