@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workflow Test Platform</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; }
+  .header { background: #1a1a2e; color: #fff; padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+  .header h1 { font-size: 20px; font-weight: 600; }
+  .tabs { display: flex; background: #16213e; }
+  .tab { padding: 12px 24px; color: #aaa; cursor: pointer; border-bottom: 3px solid transparent; transition: all .2s; }
+  .tab:hover { color: #fff; }
+  .tab.active { color: #fff; border-bottom-color: #4cc9f0; }
+  .content { max-width: 1200px; margin: 0 auto; padding: 24px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #eee; }
+  th { font-weight: 600; color: #666; font-size: 13px; text-transform: uppercase; }
+  .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all .2s; }
+  .btn-primary { background: #4cc9f0; color: #fff; }
+  .btn-primary:hover { background: #3ba8cc; }
+  .btn-danger { background: #e74c3c; color: #fff; }
+  .btn-danger:hover { background: #c0392b; }
+  .btn-success { background: #27ae60; color: #fff; }
+  .btn-success:hover { background: #219a52; }
+  .btn-warning { background: #f39c12; color: #fff; }
+  .btn-warning:hover { background: #d68910; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-outline { background: #fff; border: 1px solid #ddd; color: #666; }
+  .btn-outline:hover { border-color: #999; }
+  input[type="text"], input[type="file"], textarea { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; margin-bottom: 8px; }
+  textarea { resize: vertical; min-height: 60px; }
+  .form-group { margin-bottom: 12px; }
+  .form-group label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 13px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .badge-pending { background: #f0f0f0; color: #666; }
+  .badge-running { background: #fff3cd; color: #856404; }
+  .badge-success, .badge-completed { background: #d4edda; color: #155724; }
+  .badge-error, .badge-failed { background: #f8d7da; color: #721c24; }
+  .badge-none { background: #f0f0f0; color: #999; }
+  .badge-pass { background: #d4edda; color: #155724; }
+  .badge-reject { background: #f8d7da; color: #721c24; }
+  .badge-skip { background: #e2e3e5; color: #6c757d; text-decoration: line-through; }
+  .progress-bar { width: 100%; height: 6px; background: #eee; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #4cc9f0; transition: width .3s; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(560px, 1fr)); gap: 16px; }
+  .result-card { background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  .result-card .compare { display: flex; gap: 0; }
+  .result-card .compare-side { flex: 1; min-width: 0; }
+  .result-card .compare-side .side-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #999; padding: 6px 12px 2px; background: #fafafa; }
+  .result-card .compare-side img { width: 100%; height: 200px; object-fit: cover; background: #f0f0f0; cursor: pointer; }
+  .result-card .compare-divider { width: 1px; background: #eee; }
+  .result-card .no-img { height: 200px; display: flex; align-items: center; justify-content: center; background: #f8f8f8; color: #ccc; font-size: 13px; }
+  .result-card .info { padding: 12px; border-top: 1px solid #eee; }
+  .result-card .info p { font-size: 13px; color: #666; margin-bottom: 4px; }
+  .review-btns { display: flex; gap: 6px; margin-top: 8px; }
+  .review-btns .btn { flex: 1; }
+  .review-btns .btn.active { box-shadow: 0 0 0 2px rgba(0,0,0,.2); }
+  .result-card.skipped { opacity: .45; }
+  .empty { text-align: center; padding: 40px; color: #999; }
+  .workflow-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .workflow-item { background: #fff; border: 2px solid #eee; border-radius: 8px; padding: 16px; cursor: pointer; transition: all .2s; }
+  .workflow-item:hover { border-color: #4cc9f0; }
+  .workflow-item.selected { border-color: #4cc9f0; background: #f0faff; }
+  .workflow-item .name { font-weight: 600; }
+  .workflow-item .pipeline { font-size: 12px; color: #999; margin-top: 4px; }
+  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .img-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 4px; background: #f0f0f0; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .modal { background: #fff; border-radius: 12px; padding: 24px; width: 90%; max-width: 500px; }
+  .modal h3 { margin-bottom: 16px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+  .hidden { display: none; }
+  .task-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+  .back-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #666; }
+  .remark-text { font-size: 12px; color: #888; font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Workflow Test Platform</h1>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="cases">Test Cases</div>
+  <div class="tab" data-tab="run">Run Test</div>
+  <div class="tab" data-tab="tasks">Tasks & Results</div>
+</div>
+
+<div class="content">
+  <!-- ===== Test Cases Panel ===== -->
+  <div id="panel-cases" class="panel active">
+    <div class="top-bar">
+      <h2>Test Cases</h2>
+      <button class="btn btn-primary" onclick="showAddCaseModal()">+ Add Case</button>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>ID</th><th>Name</th><th>User Input Text</th><th>User Input Image</th><th>Remark</th><th>Created</th><th></th></tr></thead>
+        <tbody id="cases-table"></tbody>
+      </table>
+      <div id="cases-empty" class="empty hidden">No test cases yet. Add one to get started.</div>
+    </div>
+  </div>
+
+  <!-- ===== Run Test Panel ===== -->
+  <div id="panel-run" class="panel">
+    <h2 style="margin-bottom:16px">Select a Workflow to Test</h2>
+    <div id="workflow-list" class="workflow-list"></div>
+    <div style="margin-top:20px">
+      <div class="form-group" style="max-width:400px">
+        <label>Task Remark (optional)</label>
+        <input type="text" id="task-remark" placeholder="e.g. Testing new model v2">
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button id="run-btn" class="btn btn-primary" disabled onclick="createTask()">Run Selected Workflow</button>
+        <span id="run-status" style="font-size:13px; color:#666;"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Tasks & Results Panel ===== -->
+  <div id="panel-tasks" class="panel">
+    <!-- Task list view -->
+    <div id="tasks-list-view">
+      <h2 style="margin-bottom:16px">Test Tasks</h2>
+      <div class="card">
+        <table>
+          <thead><tr><th>ID</th><th>Workflow</th><th>Status</th><th>Progress</th><th>Remark</th><th>Created</th><th></th></tr></thead>
+          <tbody id="tasks-table"></tbody>
+        </table>
+        <div id="tasks-empty" class="empty hidden">No tasks yet. Run a test from the "Run Test" tab.</div>
+      </div>
+    </div>
+
+    <!-- Task detail view -->
+    <div id="task-detail-view" class="hidden">
+      <div class="task-header">
+        <button class="back-btn" onclick="showTaskList()">&larr;</button>
+        <div>
+          <h2 id="detail-title"></h2>
+          <span id="detail-status" class="badge"></span>
+          <span id="detail-progress" style="font-size:13px; color:#666; margin-left:8px;"></span>
+          <div id="detail-remark" class="remark-text" style="margin-top:4px"></div>
+          <div id="detail-review-summary" style="font-size:13px; margin-top:4px;"></div>
+        </div>
+      </div>
+      <div id="detail-results" class="grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Case Modal -->
+<div id="add-case-modal" class="modal-overlay hidden" onclick="if(event.target===this)hideAddCaseModal()">
+  <div class="modal">
+    <h3>Add Test Case</h3>
+    <form id="add-case-form" onsubmit="submitCase(event)">
+      <div class="form-group">
+        <label>Name *</label>
+        <input type="text" name="name" required placeholder="e.g. Golden Dragon">
+      </div>
+      <div class="form-group">
+        <label>User Input Text</label>
+        <textarea name="prompt" placeholder="Simulated user text input (optional if image provided)"></textarea>
+      </div>
+      <div class="form-group">
+        <label>User Input Image</label>
+        <input type="file" name="image" accept="image/*">
+      </div>
+      <div class="form-group">
+        <label>Remark</label>
+        <input type="text" name="remark" placeholder="Optional note about this test case">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="hideAddCaseModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Case</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const API = '';
+let selectedWorkflow = null;
+let pollInterval = null;
+let currentTaskFinished = false;
+
+// ===== Tab Navigation =====
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+
+    if (tab.dataset.tab === 'cases') loadCases();
+    if (tab.dataset.tab === 'run') loadWorkflows();
+    if (tab.dataset.tab === 'tasks') { loadTasks(); showTaskList(); }
+  });
+});
+
+// ===== Cases =====
+async function loadCases() {
+  const res = await fetch(API + '/api/cases');
+  const cases = await res.json();
+  const tbody = document.getElementById('cases-table');
+  const empty = document.getElementById('cases-empty');
+
+  if (cases.length === 0) {
+    tbody.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  tbody.innerHTML = cases.map(c => `
+    <tr>
+      <td>${c.id}</td>
+      <td>${esc(c.name)}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.prompt || '-')}</td>
+      <td>${c.imagePath ? `<img class="img-thumb" src="/uploads/${c.imagePath.split('/').pop()}" onerror="this.style.display='none'">` : '-'}</td>
+      <td class="remark-text">${esc(c.remark || '-')}</td>
+      <td>${fmtDate(c.createdAt)}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteCase(${c.id})">Delete</button></td>
+    </tr>
+  `).join('');
+}
+
+function showAddCaseModal() { document.getElementById('add-case-modal').classList.remove('hidden'); }
+function hideAddCaseModal() { document.getElementById('add-case-modal').classList.add('hidden'); document.getElementById('add-case-form').reset(); }
+
+async function submitCase(e) {
+  e.preventDefault();
+  const form = e.target;
+  const fd = new FormData(form);
+  if (!fd.get('prompt') && !fd.get('image')?.size) {
+    alert('Please provide at least a prompt or an image.');
+    return;
+  }
+  const res = await fetch(API + '/api/cases', { method: 'POST', body: fd });
+  if (!res.ok) { const err = await res.json(); alert(err.error); return; }
+  hideAddCaseModal();
+  loadCases();
+}
+
+async function deleteCase(id) {
+  if (!confirm('Delete this test case?')) return;
+  await fetch(API + '/api/cases/' + id, { method: 'DELETE' });
+  loadCases();
+}
+
+// ===== Workflows =====
+async function loadWorkflows() {
+  const res = await fetch(API + '/api/workflows');
+  const workflows = await res.json();
+  const container = document.getElementById('workflow-list');
+
+  container.innerHTML = workflows.map(w => `
+    <div class="workflow-item ${selectedWorkflow === w.id ? 'selected' : ''}" data-id="${w.id}" onclick="selectWorkflow('${w.id}')">
+      <div class="name">${esc(w.name)}</div>
+      <div class="pipeline">${w.pipeline} pipeline</div>
+    </div>
+  `).join('');
+
+  updateRunBtn();
+}
+
+function selectWorkflow(id) {
+  selectedWorkflow = selectedWorkflow === id ? null : id;
+  document.querySelectorAll('.workflow-item').forEach(el => {
+    el.classList.toggle('selected', el.dataset.id === selectedWorkflow);
+  });
+  updateRunBtn();
+}
+
+function updateRunBtn() {
+  document.getElementById('run-btn').disabled = !selectedWorkflow;
+}
+
+async function createTask() {
+  if (!selectedWorkflow) return;
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.textContent = 'Creating...';
+
+  const remark = document.getElementById('task-remark').value || '';
+
+  const res = await fetch(API + '/api/tasks', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ workflowId: selectedWorkflow, remark }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    alert(err.error);
+    btn.disabled = false;
+    btn.textContent = 'Run Selected Workflow';
+    return;
+  }
+
+  const task = await res.json();
+  btn.textContent = 'Run Selected Workflow';
+  btn.disabled = false;
+  document.getElementById('task-remark').value = '';
+
+  // Switch to tasks tab and show detail
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('[data-tab="tasks"]').classList.add('active');
+  document.getElementById('panel-tasks').classList.add('active');
+  showTaskDetail(task.id);
+}
+
+// ===== Tasks =====
+async function loadTasks() {
+  const res = await fetch(API + '/api/tasks');
+  const data = await res.json();
+  const tasks = data.tasks;
+  const tbody = document.getElementById('tasks-table');
+  const empty = document.getElementById('tasks-empty');
+
+  document.getElementById('run-status').textContent = `Running: ${data.running} / Queued: ${data.queued}`;
+
+  if (tasks.length === 0) {
+    tbody.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  tbody.innerHTML = tasks.map(t => `
+    <tr>
+      <td>${t.id}</td>
+      <td>${esc(t.workflowName)}</td>
+      <td><span class="badge badge-${t.status}">${t.status}</span></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="progress-bar" style="width:100px">
+            <div class="progress-fill" style="width:${t.totalCases ? (t.completedCases/t.totalCases*100) : 0}%"></div>
+          </div>
+          <span style="font-size:12px">${t.completedCases}/${t.totalCases}${t.failedCases ? ` (${t.failedCases} err)` : ''}</span>
+        </div>
+      </td>
+      <td class="remark-text">${esc(t.remark || '-')}</td>
+      <td>${fmtDate(t.createdAt)}</td>
+      <td><button class="btn btn-primary btn-sm" onclick="showTaskDetail(${t.id})">View</button></td>
+    </tr>
+  `).join('');
+}
+
+function showTaskList() {
+  document.getElementById('tasks-list-view').classList.remove('hidden');
+  document.getElementById('task-detail-view').classList.add('hidden');
+  if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+  loadTasks();
+}
+
+async function showTaskDetail(taskId) {
+  document.getElementById('tasks-list-view').classList.add('hidden');
+  document.getElementById('task-detail-view').classList.remove('hidden');
+  currentTaskFinished = false;
+
+  async function refresh() {
+    const res = await fetch(API + '/api/tasks/' + taskId);
+    const task = await res.json();
+
+    document.getElementById('detail-title').textContent = `Task #${task.id} — ${task.workflowName}`;
+    const statusEl = document.getElementById('detail-status');
+    statusEl.textContent = task.status;
+    statusEl.className = 'badge badge-' + task.status;
+    document.getElementById('detail-progress').textContent =
+      `${task.completedCases}/${task.totalCases} completed` +
+      (task.failedCases ? ` (${task.failedCases} errors)` : '');
+    document.getElementById('detail-remark').textContent = task.remark ? `Remark: ${task.remark}` : '';
+
+    const isFinished = task.status === 'completed' || task.status === 'failed';
+    currentTaskFinished = isFinished;
+
+    // Review summary
+    if (isFinished) {
+      const pass = task.results.filter(r => r.review === 'pass').length;
+      const pending = task.results.filter(r => r.review === 'pending').length;
+      const reject = task.results.filter(r => r.review === 'reject').length;
+      const skip = task.results.filter(r => r.review === 'skip').length;
+      const unreviewed = task.results.filter(r => r.review === 'none' && r.status === 'success').length;
+      const scored = pass + reject;
+      const passRate = scored > 0 ? Math.round(pass / scored * 100) : '-';
+      document.getElementById('detail-review-summary').innerHTML =
+        `Review: <span style="color:#27ae60">${pass} pass</span> / <span style="color:#f39c12">${pending} pending</span> / <span style="color:#e74c3c">${reject} reject</span>` +
+        (skip > 0 ? ` / <span style="color:#6c757d">${skip} skipped</span>` : '') +
+        (unreviewed > 0 ? ` / <span style="color:#999">${unreviewed} unreviewed</span>` : '') +
+        (scored > 0 ? ` &mdash; <strong>Pass rate: ${passRate}%</strong> (${pass}/${scored})` : '');
+    } else {
+      document.getElementById('detail-review-summary').textContent = '';
+    }
+
+    const container = document.getElementById('detail-results');
+    container.innerHTML = task.results.map(r => {
+      const caseImg = r.case?.imagePath ? `/uploads/${r.case.imagePath.split('/').pop()}` : null;
+      const resultImg = (r.status === 'success' && r.resultImagePath) ? `/results/${r.resultImagePath}` : null;
+
+      return `
+      <div class="result-card ${r.review === 'skip' ? 'skipped' : ''}">
+        <div class="compare">
+          <div class="compare-side">
+            <div class="side-label">Input</div>
+            ${caseImg
+              ? `<img src="${caseImg}" loading="lazy" onclick="window.open(this.src)">`
+              : `<div class="no-img">No image input</div>`}
+          </div>
+          <div class="compare-divider"></div>
+          <div class="compare-side">
+            <div class="side-label">Output</div>
+            ${resultImg
+              ? `<img src="${resultImg}" loading="lazy" onclick="window.open(this.src)">`
+              : `<div class="no-img">
+                  ${r.status === 'running' ? '<span style="color:#856404">Running...</span>' :
+                    r.status === 'pending' ? '<span style="color:#666">Pending</span>' :
+                    '<span style="color:#c0392b;font-size:12px;padding:8px;word-break:break-all">' + esc(r.error || 'Error') + '</span>'}
+                </div>`}
+          </div>
+        </div>
+        <div class="info">
+          <p><strong>${esc(r.case?.name || 'Case #' + r.caseId)}</strong></p>
+          <p><span class="badge badge-${r.status}">${r.status}</span> ${r.durationMs ? (r.durationMs/1000).toFixed(1) + 's' : ''}</p>
+          ${r.case?.prompt ? `<p style="font-size:12px;color:#999;margin-top:4px"><strong>Input text:</strong> ${esc(r.case.prompt.substring(0, 120))}${r.case.prompt.length > 120 ? '...' : ''}</p>` : ''}
+          ${r.case?.remark ? `<p class="remark-text">${esc(r.case.remark)}</p>` : ''}
+          ${isFinished && r.status === 'success' ? `
+            <div class="review-btns">
+              <button class="btn btn-sm btn-success ${r.review === 'pass' ? 'active' : 'btn-outline'}" onclick="setReview(${r.id}, 'pass')">Pass</button>
+              <button class="btn btn-sm btn-warning ${r.review === 'pending' ? 'active' : 'btn-outline'}" onclick="setReview(${r.id}, 'pending')">Pending</button>
+              <button class="btn btn-sm btn-danger ${r.review === 'reject' ? 'active' : 'btn-outline'}" onclick="setReview(${r.id}, 'reject')">Reject</button>
+              <button class="btn btn-sm ${r.review === 'skip' ? 'active' : 'btn-outline'}" style="${r.review === 'skip' ? 'background:#6c757d;color:#fff' : ''}" onclick="setReview(${r.id}, '${r.review === 'skip' ? 'none' : 'skip'}')">Skip</button>
+            </div>
+          ` : ''}
+          ${r.review && r.review !== 'none' && !(isFinished && r.status === 'success') ? `<p style="margin-top:4px"><span class="badge badge-${r.review}">${r.review}</span></p>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+
+    // Stop polling when task is done
+    if (isFinished) {
+      if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+    }
+  }
+
+  await refresh();
+  if (pollInterval) clearInterval(pollInterval);
+  if (!currentTaskFinished) {
+    pollInterval = setInterval(refresh, 3000);
+  }
+}
+
+async function setReview(resultId, review) {
+  await fetch(API + '/api/results/' + resultId + '/review', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ review }),
+  });
+  // Re-render current task detail
+  const title = document.getElementById('detail-title').textContent;
+  const taskId = parseInt(title.match(/#(\d+)/)?.[1] || '0');
+  if (taskId) {
+    const res = await fetch(API + '/api/tasks/' + taskId);
+    const task = await res.json();
+
+    // Update review summary
+    const pass = task.results.filter(r => r.review === 'pass').length;
+    const pending = task.results.filter(r => r.review === 'pending').length;
+    const reject = task.results.filter(r => r.review === 'reject').length;
+    const skip = task.results.filter(r => r.review === 'skip').length;
+    const unreviewed = task.results.filter(r => r.review === 'none' && r.status === 'success').length;
+    const scored = pass + reject;
+    const passRate = scored > 0 ? Math.round(pass / scored * 100) : '-';
+    document.getElementById('detail-review-summary').innerHTML =
+      `Review: <span style="color:#27ae60">${pass} pass</span> / <span style="color:#f39c12">${pending} pending</span> / <span style="color:#e74c3c">${reject} reject</span>` +
+      (skip > 0 ? ` / <span style="color:#6c757d">${skip} skipped</span>` : '') +
+      (unreviewed > 0 ? ` / <span style="color:#999">${unreviewed} unreviewed</span>` : '') +
+      (scored > 0 ? ` &mdash; <strong>Pass rate: ${passRate}%</strong> (${pass}/${scored})` : '');
+
+    // Refresh the detail view to update card states
+    showTaskDetail(taskId);
+  }
+}
+
+// ===== Helpers =====
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function fmtDate(iso) { if (!iso) return '-'; const d = new Date(iso); return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+
+// Initial load
+loadCases();
+</script>
+</body>
+</html>

@@ -97,3 +97,52 @@ model Config {
 
   @@map("config")
 }
+
+// ---- Test Platform Models ----
+
+model TestCase {
+  id        Int      @id @default(autoincrement())
+  name      String
+  prompt    String   @default("")
+  imagePath String   @default("") @map("image_path")
+  remark    String   @default("")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  results   TestResult[]
+
+  @@map("test_cases")
+}
+
+model TestTask {
+  id             Int       @id @default(autoincrement())
+  workflowId     String    @map("workflow_id")
+  workflowName   String    @map("workflow_name")
+  status         String    @default("pending")
+  totalCases     Int       @default(0) @map("total_cases")
+  completedCases Int       @default(0) @map("completed_cases")
+  failedCases    Int       @default(0) @map("failed_cases")
+  remark         String    @default("")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  finishedAt     DateTime? @map("finished_at")
+
+  results        TestResult[]
+
+  @@map("test_tasks")
+}
+
+model TestResult {
+  id              Int      @id @default(autoincrement())
+  taskId          Int      @map("task_id")
+  caseId          Int      @map("case_id")
+  status          String   @default("pending")
+  resultImagePath String   @default("") @map("result_image_path")
+  error           String   @default("")
+  durationMs      Int      @default(0) @map("duration_ms")
+  review          String   @default("none")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  task   TestTask @relation(fields: [taskId], references: [id])
+  case   TestCase @relation(fields: [caseId], references: [id])
+
+  @@map("test_results")
+}

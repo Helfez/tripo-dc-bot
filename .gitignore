@@ -7,3 +7,4 @@
 DEPLOY_AWS.md
 prisma/data/
 prisma/dev.db
+data/testplatform/

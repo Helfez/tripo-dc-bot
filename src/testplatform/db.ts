@@ -1,0 +1,86 @@
+import { PrismaClient } from '@prisma/client';
+
+let prisma: PrismaClient;
+
+export function getPrisma(): PrismaClient {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
+
+// ---- TestCase ----
+
+export async function listCases() {
+  return getPrisma().testCase.findMany({ orderBy: { createdAt: 'desc' } });
+}
+
+export async function createCase(name: string, prompt: string, imagePath: string, remark: string = '') {
+  return getPrisma().testCase.create({ data: { name, prompt, imagePath, remark } });
+}
+
+export async function deleteCase(id: number) {
+  // Delete associated results first
+  await getPrisma().testResult.deleteMany({ where: { caseId: id } });
+  return getPrisma().testCase.delete({ where: { id } });
+}
+
+export async function getCasesByIds(ids: number[]) {
+  return getPrisma().testCase.findMany({ where: { id: { in: ids } } });
+}
+
+// ---- TestTask ----
+
+export async function listTasks() {
+  return getPrisma().testTask.findMany({ orderBy: { createdAt: 'desc' } });
+}
+
+export async function createTask(workflowId: string, workflowName: string, totalCases: number, remark: string = '') {
+  return getPrisma().testTask.create({
+    data: { workflowId, workflowName, totalCases, status: 'pending', remark },
+  });
+}
+
+export async function getTask(id: number) {
+  return getPrisma().testTask.findUnique({
+    where: { id },
+    include: { results: { include: { case: true }, orderBy: { id: 'asc' } } },
+  });
+}
+
+export async function updateTaskStatus(id: number, status: string, extra?: { completedCases?: number; failedCases?: number; finishedAt?: Date }) {
+  return getPrisma().testTask.update({
+    where: { id },
+    data: { status, ...extra },
+  });
+}
+
+export async function incrementTaskProgress(id: number, success: boolean) {
+  const data: any = { completedCases: { increment: 1 } };
+  if (!success) data.failedCases = { increment: 1 };
+  return getPrisma().testTask.update({ where: { id }, data });
+}
+
+// ---- TestResult ----
+
+export async function createResults(taskId: number, caseIds: number[]) {
+  const data = caseIds.map(caseId => ({ taskId, caseId, status: 'pending' }));
+  await getPrisma().testResult.createMany({ data });
+  return getPrisma().testResult.findMany({
+    where: { taskId },
+    include: { case: true },
+    orderBy: { id: 'asc' },
+  });
+}
+
+export async function updateResult(id: number, data: { status?: string; resultImagePath?: string; error?: string; durationMs?: number; review?: string }) {
+  return getPrisma().testResult.update({ where: { id }, data });
+}
+
+export async function getResultsByTask(taskId: number) {
+  return getPrisma().testResult.findMany({
+    where: { taskId },
+    include: { case: true },
+    orderBy: { id: 'asc' },
+  });
+}
