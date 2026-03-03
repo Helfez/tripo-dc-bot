@@ -101,12 +101,16 @@ export async function startTask(taskId: number): Promise<void> {
         } catch (err: any) {
           const durationMs = Date.now() - start;
           const errMsg = err?.message || String(err);
-          await db.updateResult(result.id, {
-            status: 'error',
-            error: errMsg.substring(0, 500),
-            durationMs,
-          });
-          await db.incrementTaskProgress(taskId, false);
+          try {
+            await db.updateResult(result.id, {
+              status: 'error',
+              error: errMsg.substring(0, 500),
+              durationMs,
+            });
+            await db.incrementTaskProgress(taskId, false);
+          } catch (dbErr: any) {
+            tLog.logError(LOG_ACTIONS.SYS, `[test-platform] task ${taskId} case ${testCase.id} DB update also failed:`, dbErr?.message);
+          }
           tLog.logError(LOG_ACTIONS.SYS, `[test-platform] task ${taskId} case ${testCase.id} error:`, errMsg.substring(0, 120));
         }
       });

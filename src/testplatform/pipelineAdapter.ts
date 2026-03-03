@@ -24,6 +24,9 @@ export function getWorkflowDef(workflowId: string): WorkflowDef | undefined {
 }
 
 function imagePathToDataUrl(imagePath: string): string {
+  if (!fs.existsSync(imagePath)) {
+    throw new Error(`Image file not found: ${imagePath}`);
+  }
   const buf = fs.readFileSync(imagePath);
   const ext = path.extname(imagePath).toLowerCase().replace('.', '');
   const mime = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`;

@@ -12,6 +12,15 @@ import workflowsRouter from './routes/workflows';
 import tasksRouter from './routes/tasks';
 import resultsRouter from './routes/results';
 
+// 全局异常捕获，防止测试平台进程崩溃
+process.on('uncaughtException', (err) => {
+  console.error('[test-platform] [FATAL] uncaughtException:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[test-platform] [FATAL] unhandledRejection:', reason);
+});
+
 // Initialize environment (for AIHUBMIX_API_KEY etc.)
 envInit();
 
