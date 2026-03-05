@@ -55,6 +55,13 @@ export async function updateTaskStatus(id: number, status: string, extra?: { com
   });
 }
 
+export async function updateTaskReview(id: number, review: string, reviewNote: string) {
+  return getPrisma().testTask.update({
+    where: { id },
+    data: { review, reviewNote },
+  });
+}
+
 export async function incrementTaskProgress(id: number, success: boolean) {
   const data: any = { completedCases: { increment: 1 } };
   if (!success) data.failedCases = { increment: 1 };

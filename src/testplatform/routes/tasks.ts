@@ -60,4 +60,20 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
+// Update task review (overall evaluation)
+router.patch('/:id/review', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { review, reviewNote } = req.body;
+    if (!['pass', 'pending', 'reject', 'none'].includes(review)) {
+      res.status(400).json({ error: 'review must be pass, pending, reject, or none' });
+      return;
+    }
+    const updated = await db.updateTaskReview(id, review, reviewNote || '');
+    res.json(updated);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

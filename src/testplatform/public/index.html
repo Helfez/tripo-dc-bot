@@ -90,6 +90,14 @@
   .task-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
   .back-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #666; }
   .remark-text { font-size: 12px; color: #888; font-style: italic; }
+  /* Task overall review */
+  .task-review-box { background: #fff; border-radius: 8px; padding: 16px 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  .task-review-box h3 { font-size: 15px; margin-bottom: 10px; }
+  .task-review-btns { display: flex; gap: 8px; margin-bottom: 10px; }
+  .task-review-btns .btn { min-width: 80px; }
+  .task-review-btns .btn.active { box-shadow: 0 0 0 2px rgba(0,0,0,.25); }
+  .task-review-note { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; resize: vertical; min-height: 40px; }
+  .task-review-current { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: 600; margin-left: 8px; }
   /* Login */
   .login-overlay { position: fixed; inset: 0; background: #1a1a2e; display: flex; align-items: center; justify-content: center; z-index: 200; }
   .login-box { background: #fff; border-radius: 12px; padding: 32px; width: 340px; box-shadow: 0 8px 32px rgba(0,0,0,.3); }
@@ -168,7 +176,7 @@
       <h2 style="margin-bottom:16px">Test Tasks</h2>
       <div class="card">
         <table>
-          <thead><tr><th>ID</th><th>Workflow</th><th>Status</th><th>Progress</th><th>Remark</th><th>Created</th><th></th></tr></thead>
+          <thead><tr><th>ID</th><th>Workflow</th><th>Status</th><th>Progress</th><th>Review</th><th>Remark</th><th>Created</th><th></th></tr></thead>
           <tbody id="tasks-table"></tbody>
         </table>
         <div id="tasks-empty" class="empty hidden">No tasks yet. Run a test from the "Run Test" tab.</div>
@@ -186,6 +194,16 @@
           <div id="detail-remark" class="remark-text" style="margin-top:4px"></div>
           <div id="detail-review-summary" style="font-size:13px; margin-top:4px;"></div>
         </div>
+      </div>
+      <div id="task-review-section" class="task-review-box hidden">
+        <h3>Overall Review</h3>
+        <div class="task-review-btns">
+          <button class="btn btn-sm btn-success" id="task-rv-pass" onclick="setTaskReview('pass')">Pass</button>
+          <button class="btn btn-sm btn-warning" id="task-rv-pending" onclick="setTaskReview('pending')">Pending</button>
+          <button class="btn btn-sm btn-danger" id="task-rv-reject" onclick="setTaskReview('reject')">Reject</button>
+          <button class="btn btn-sm btn-outline" id="task-rv-none" onclick="setTaskReview('none')">Clear</button>
+        </div>
+        <textarea id="task-review-note" class="task-review-note" placeholder="Add a note for this task (optional)..." onblur="saveTaskReviewNote()"></textarea>
       </div>
       <div id="detail-results" class="grid"></div>
     </div>
@@ -228,6 +246,8 @@ const API = '';
 let selectedWorkflow = null;
 let pollInterval = null;
 let currentTaskFinished = false;
+let currentTaskReview = 'none';
+let currentTaskReviewNote = '';
 let authToken = sessionStorage.getItem('tp_token') || '';
 
 // ===== Auth =====
@@ -448,6 +468,7 @@ async function loadTasks() {
           <span style="font-size:12px">${t.completedCases}/${t.totalCases}${t.failedCases ? ` (${t.failedCases} err)` : ''}</span>
         </div>
       </td>
+      <td>${t.review && t.review !== 'none' ? `<span class="badge badge-${t.review}">${t.review}</span>` : '<span style="color:#ccc">-</span>'}</td>
       <td class="remark-text">${esc(t.remark || '-')}</td>
       <td>${fmtDate(t.createdAt)}</td>
       <td><button class="btn btn-primary btn-sm" onclick="showTaskDetail(${t.id})">View</button></td>
@@ -475,13 +496,36 @@ async function showTaskDetail(taskId) {
     const statusEl = document.getElementById('detail-status');
     statusEl.textContent = task.status;
     statusEl.className = 'badge badge-' + task.status;
-    document.getElementById('detail-progress').textContent =
+    const reviewLabel = task.review && task.review !== 'none' ? task.review : '';
+    document.getElementById('detail-progress').innerHTML =
       `${task.completedCases}/${task.totalCases} completed` +
-      (task.failedCases ? ` (${task.failedCases} errors)` : '');
+      (task.failedCases ? ` (${task.failedCases} errors)` : '') +
+      (reviewLabel ? ` <span class="badge badge-${task.review}" style="margin-left:8px">${reviewLabel}</span>` : '');
     document.getElementById('detail-remark').textContent = task.remark ? `Remark: ${task.remark}` : '';
 
     const isFinished = task.status === 'completed' || task.status === 'failed';
     currentTaskFinished = isFinished;
+
+    // Task-level review section
+    const reviewSection = document.getElementById('task-review-section');
+    if (isFinished) {
+      reviewSection.classList.remove('hidden');
+      currentTaskReview = task.review || 'none';
+      currentTaskReviewNote = task.reviewNote || '';
+      document.getElementById('task-review-note').value = currentTaskReviewNote;
+      ['pass','pending','reject','none'].forEach(rv => {
+        const btn = document.getElementById('task-rv-' + rv);
+        if (rv === currentTaskReview) {
+          btn.classList.add('active');
+          if (rv !== 'none') btn.classList.remove('btn-outline');
+        } else {
+          btn.classList.remove('active');
+          if (rv === 'none') {} else if (rv !== currentTaskReview) btn.classList.add('btn-outline');
+        }
+      });
+    } else {
+      reviewSection.classList.add('hidden');
+    }
 
     // Review summary
     if (isFinished) {
@@ -614,6 +658,33 @@ function renderReviewSummary(results) {
 function toggleAiReason(resultId) {
   const el = document.getElementById('ai-reason-' + resultId);
   if (el) el.classList.toggle('show');
+}
+
+async function setTaskReview(review) {
+  const title = document.getElementById('detail-title').textContent;
+  const taskId = parseInt(title.match(/#(\d+)/)?.[1] || '0');
+  if (!taskId) return;
+  const note = document.getElementById('task-review-note').value || '';
+  await authFetch(API + '/api/tasks/' + taskId + '/review', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ review, reviewNote: note }),
+  });
+  showTaskDetail(taskId);
+}
+
+async function saveTaskReviewNote() {
+  const title = document.getElementById('detail-title').textContent;
+  const taskId = parseInt(title.match(/#(\d+)/)?.[1] || '0');
+  if (!taskId) return;
+  const note = document.getElementById('task-review-note').value || '';
+  if (note === currentTaskReviewNote) return;
+  await authFetch(API + '/api/tasks/' + taskId + '/review', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ review: currentTaskReview, reviewNote: note }),
+  });
+  currentTaskReviewNote = note;
 }
 
 async function aiRescore(resultId) {

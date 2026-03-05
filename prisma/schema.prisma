@@ -122,6 +122,8 @@ model TestTask {
   completedCases Int       @default(0) @map("completed_cases")
   failedCases    Int       @default(0) @map("failed_cases")
   remark         String    @default("")
+  review         String    @default("none")
+  reviewNote     String    @default("") @map("review_note")
   createdAt      DateTime  @default(now()) @map("created_at")
   finishedAt     DateTime? @map("finished_at")
 
