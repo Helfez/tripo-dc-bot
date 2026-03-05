@@ -25,15 +25,16 @@ router.post('/', async (req: Request, res: Response) => {
       return;
     }
 
-    // Snapshot current cases
+    // Snapshot current cases — skip cases with no prompt and no image
     const allCases = await db.listCases();
-    if (allCases.length === 0) {
-      res.status(400).json({ error: 'No test cases available' });
+    const validCases = allCases.filter(c => c.prompt || c.imagePath);
+    if (validCases.length === 0) {
+      res.status(400).json({ error: 'No valid test cases (all cases have empty prompt and image)' });
       return;
     }
 
-    const task = await db.createTask(def.id, def.name, allCases.length, remark || '');
-    const caseIds = allCases.map(c => c.id);
+    const task = await db.createTask(def.id, def.name, validCases.length, remark || '');
+    const caseIds = validCases.map(c => c.id);
     await db.createResults(task.id, caseIds);
 
     // Fire and forget — task runs in background
