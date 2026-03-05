@@ -124,4 +124,20 @@ router.post('/batch-upload', upload.array('images', 200) as any, async (req: Req
   }
 });
 
+// Set case image from pool (S3 URL)
+router.patch('/:id/pool-image', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { url } = req.body;
+    if (!url) {
+      res.status(400).json({ error: 'url is required' });
+      return;
+    }
+    await db.updateCaseImage(id, url);
+    res.json({ ok: true, imagePath: url });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

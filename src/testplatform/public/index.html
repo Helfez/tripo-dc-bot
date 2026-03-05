@@ -107,6 +107,17 @@
   .login-error { color: #e74c3c; font-size: 13px; text-align: center; margin-bottom: 8px; }
   .logout-btn { background: none; border: 1px solid rgba(255,255,255,.3); color: #aaa; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: auto; }
   .logout-btn:hover { color: #fff; border-color: rgba(255,255,255,.6); }
+  /* Pool */
+  .pool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; max-height: 400px; overflow-y: auto; margin-bottom: 12px; }
+  .pool-thumb { position: relative; border-radius: 6px; overflow: hidden; border: 2px solid #eee; cursor: pointer; transition: all .2s; }
+  .pool-thumb:hover { border-color: #4cc9f0; }
+  .pool-thumb.selected { border-color: #4cc9f0; box-shadow: 0 0 0 2px #4cc9f0; }
+  .pool-thumb img { width: 100%; height: 100px; object-fit: cover; display: block; }
+  .pool-thumb .pool-name { font-size: 10px; color: #666; padding: 2px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pool-thumb .pool-del { position: absolute; top: 2px; right: 2px; background: rgba(231,76,60,.85); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: none; line-height: 18px; text-align: center; }
+  .pool-thumb:hover .pool-del { display: block; }
+  .btn-pool { background: #8e44ad; color: #fff; }
+  .btn-pool:hover { background: #7d3c98; }
 </style>
 </head>
 <body>
@@ -143,6 +154,7 @@
     <div class="top-bar">
       <h2>Test Cases</h2>
       <div style="display:flex;gap:8px">
+        <button class="btn btn-pool" onclick="showPoolModal()">Manage Pool</button>
         <button class="btn btn-warning" onclick="showBatchUploadModal()">Batch Upload Images</button>
         <button class="btn btn-primary" onclick="showAddCaseModal()">+ Add Case</button>
       </div>
@@ -229,6 +241,11 @@
       <div class="form-group">
         <label>User Input Image</label>
         <input type="file" name="image" accept="image/*">
+        <div style="margin-top:4px">
+          <button type="button" class="btn btn-pool btn-sm" onclick="showPoolPickerForAdd()">Or pick from Pool</button>
+          <span id="add-case-pool-info" style="font-size:12px;color:#666;margin-left:8px"></span>
+          <input type="hidden" name="poolImageUrl" id="add-case-pool-url">
+        </div>
       </div>
       <div class="form-group">
         <label>Remark</label>
@@ -255,6 +272,39 @@
     <div class="modal-actions">
       <button type="button" class="btn" onclick="hideBatchUploadModal()">Close</button>
       <button type="button" class="btn btn-primary" id="batch-upload-btn" onclick="doBatchUpload()">Upload</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pool Management Modal -->
+<div id="pool-modal" class="modal-overlay hidden" onclick="if(event.target===this)hidePoolModal()">
+  <div class="modal" style="max-width:700px">
+    <h3>Image Pool</h3>
+    <p style="font-size:13px;color:#666;margin-bottom:12px">Upload images to a shared S3 pool. Use them across test cases without re-uploading.</p>
+    <div class="form-group">
+      <input type="file" id="pool-upload-files" accept="image/*" multiple>
+    </div>
+    <div style="margin-bottom:12px">
+      <button class="btn btn-primary btn-sm" id="pool-upload-btn" onclick="doPoolUpload()">Upload to Pool</button>
+      <span id="pool-upload-status" style="font-size:12px;color:#666;margin-left:8px"></span>
+    </div>
+    <div id="pool-grid" class="pool-grid"></div>
+    <div id="pool-empty" class="empty hidden" style="padding:20px">No images in pool yet.</div>
+    <div class="modal-actions">
+      <button type="button" class="btn" onclick="hidePoolModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pool Picker Modal (for selecting an image for a case) -->
+<div id="pool-picker-modal" class="modal-overlay hidden" onclick="if(event.target===this)hidePoolPicker()">
+  <div class="modal" style="max-width:700px">
+    <h3>Select Image from Pool</h3>
+    <div id="pool-picker-grid" class="pool-grid"></div>
+    <div id="pool-picker-empty" class="empty hidden" style="padding:20px">No images in pool. Upload some first.</div>
+    <div class="modal-actions">
+      <button type="button" class="btn" onclick="hidePoolPicker()">Cancel</button>
+      <button type="button" class="btn btn-primary" id="pool-picker-confirm" disabled onclick="confirmPoolPick()">Select</button>
     </div>
   </div>
 </div>
@@ -345,6 +395,15 @@ document.querySelectorAll('.tab').forEach(tab => {
   });
 });
 
+// ===== Image URL helpers =====
+function caseImgSrc(c) {
+  if (!c.imagePath) return '';
+  // S3 / remote URL — use directly
+  if (c.imagePath.startsWith('http://') || c.imagePath.startsWith('https://')) return c.imagePath;
+  // Local path — serve via /uploads
+  return imgUrl('/uploads/' + c.imagePath.split('/').pop());
+}
+
 // ===== Cases =====
 async function loadCases() {
   const res = await authFetch(API + '/api/cases');
@@ -366,11 +425,12 @@ async function loadCases() {
       <td>${c.id}</td>
       <td>${esc(c.name)}</td>
       <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.prompt || '-')}</td>
-      <td>${hasImage ? `<img class="img-thumb" src="${imgUrl('/uploads/' + c.imagePath.split('/').pop())}" onerror="this.style.display='none'">` : '<span class="badge badge-error">Missing</span>'}
+      <td>${hasImage ? `<img class="img-thumb" src="${caseImgSrc(c)}" onerror="this.style.display='none'">` : '<span class="badge badge-error">Missing</span>'}
         <label class="btn btn-outline btn-sm" style="margin-left:4px;cursor:pointer;display:inline-block">
           ${hasImage ? 'Replace' : 'Upload'}
           <input type="file" accept="image/*" style="display:none" onchange="replaceCaseImage(${c.id}, this)">
         </label>
+        <button class="btn btn-pool btn-sm" style="margin-left:4px" onclick="showPoolPicker(${c.id})">From Pool</button>
       </td>
       <td class="remark-text">${esc(c.remark || '-')}</td>
       <td>${fmtDate(c.createdAt)}</td>
@@ -380,18 +440,33 @@ async function loadCases() {
 }
 
 function showAddCaseModal() { document.getElementById('add-case-modal').classList.remove('hidden'); }
-function hideAddCaseModal() { document.getElementById('add-case-modal').classList.add('hidden'); document.getElementById('add-case-form').reset(); }
+function hideAddCaseModal() { document.getElementById('add-case-modal').classList.add('hidden'); document.getElementById('add-case-form').reset(); document.getElementById('add-case-pool-url').value = ''; document.getElementById('add-case-pool-info').textContent = ''; }
 
 async function submitCase(e) {
   e.preventDefault();
   const form = e.target;
   const fd = new FormData(form);
-  if (!fd.get('prompt') && !fd.get('image')?.size) {
+  const poolUrl = document.getElementById('add-case-pool-url').value;
+  const hasFile = fd.get('image')?.size > 0;
+  if (!fd.get('prompt') && !hasFile && !poolUrl) {
     alert('Please provide at least a prompt or an image.');
     return;
   }
-  const res = await authFetch(API + '/api/cases', { method: 'POST', body: fd });
-  if (!res.ok) { const err = await res.json(); alert(err.error); return; }
+  // If pool image selected and no file uploaded, create case then set pool image
+  if (poolUrl && !hasFile) {
+    fd.delete('image');
+    const res = await authFetch(API + '/api/cases', { method: 'POST', body: fd });
+    if (!res.ok) { const err = await res.json(); alert(err.error); return; }
+    const newCase = await res.json();
+    await authFetch(API + '/api/cases/' + newCase.id + '/pool-image', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: poolUrl }),
+    });
+  } else {
+    const res = await authFetch(API + '/api/cases', { method: 'POST', body: fd });
+    if (!res.ok) { const err = await res.json(); alert(err.error); return; }
+  }
   hideAddCaseModal();
   loadCases();
 }
@@ -612,7 +687,11 @@ async function showTaskDetail(taskId) {
 
     const container = document.getElementById('detail-results');
     container.innerHTML = task.results.map(r => {
-      const caseImg = r.case?.imagePath ? imgUrl(`/uploads/${r.case.imagePath.split('/').pop()}`) : null;
+      const caseImg = r.case?.imagePath
+        ? (r.case.imagePath.startsWith('http://') || r.case.imagePath.startsWith('https://'))
+          ? r.case.imagePath
+          : imgUrl(`/uploads/${r.case.imagePath.split('/').pop()}`)
+        : null;
       const resultImg = (r.status === 'success' && r.resultImagePath) ? imgUrl(`/results/${r.resultImagePath}`) : null;
 
       return `
@@ -769,6 +848,140 @@ async function aiRescore(resultId) {
   const title = document.getElementById('detail-title').textContent;
   const taskId = parseInt(title.match(/#(\d+)/)?.[1] || '0');
   if (taskId) showTaskDetail(taskId);
+}
+
+// ===== Image Pool =====
+let poolImages = [];
+let poolPickerTarget = null; // { type: 'case', caseId } or { type: 'add' }
+let poolPickerSelected = null;
+
+async function loadPoolImages() {
+  const res = await authFetch(API + '/api/pool');
+  poolImages = await res.json();
+  return poolImages;
+}
+
+function renderPoolGrid(containerId, emptyId, allowDelete) {
+  const container = document.getElementById(containerId);
+  const empty = document.getElementById(emptyId);
+  if (poolImages.length === 0) {
+    container.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  container.innerHTML = poolImages.map(img => `
+    <div class="pool-thumb" data-id="${img.id}" data-url="${esc(img.url)}" data-name="${esc(img.name)}">
+      <img src="${esc(img.url)}" loading="lazy" onerror="this.style.background='#fee'">
+      ${allowDelete ? `<button class="pool-del" onclick="event.stopPropagation();deletePoolImage(${img.id})">&times;</button>` : ''}
+      <div class="pool-name" title="${esc(img.name)}">${esc(img.name)}</div>
+    </div>
+  `).join('');
+}
+
+// Pool management modal
+async function showPoolModal() {
+  document.getElementById('pool-modal').classList.remove('hidden');
+  document.getElementById('pool-upload-files').value = '';
+  document.getElementById('pool-upload-status').textContent = '';
+  await loadPoolImages();
+  renderPoolGrid('pool-grid', 'pool-empty', true);
+}
+function hidePoolModal() { document.getElementById('pool-modal').classList.add('hidden'); }
+
+async function doPoolUpload() {
+  const input = document.getElementById('pool-upload-files');
+  if (!input.files || input.files.length === 0) { alert('Please select files first'); return; }
+  const btn = document.getElementById('pool-upload-btn');
+  const status = document.getElementById('pool-upload-status');
+  btn.disabled = true;
+  status.textContent = 'Uploading...';
+
+  const fd = new FormData();
+  for (const f of input.files) fd.append('images', f);
+
+  try {
+    const res = await authFetch(API + '/api/pool', { method: 'POST', body: fd });
+    const data = await res.json();
+    status.textContent = `Uploaded ${data.uploaded} image(s)`;
+    input.value = '';
+    await loadPoolImages();
+    renderPoolGrid('pool-grid', 'pool-empty', true);
+  } catch (err) {
+    status.textContent = 'Upload failed: ' + err.message;
+  }
+  btn.disabled = false;
+}
+
+async function deletePoolImage(id) {
+  if (!confirm('Delete this image from pool?')) return;
+  await authFetch(API + '/api/pool/' + id, { method: 'DELETE' });
+  await loadPoolImages();
+  renderPoolGrid('pool-grid', 'pool-empty', true);
+}
+
+// Pool picker (for selecting image for a case)
+async function showPoolPicker(caseId) {
+  poolPickerTarget = { type: 'case', caseId };
+  poolPickerSelected = null;
+  document.getElementById('pool-picker-confirm').disabled = true;
+  document.getElementById('pool-picker-modal').classList.remove('hidden');
+  await loadPoolImages();
+  renderPoolPickerGrid();
+}
+
+function showPoolPickerForAdd() {
+  poolPickerTarget = { type: 'add' };
+  poolPickerSelected = null;
+  document.getElementById('pool-picker-confirm').disabled = true;
+  document.getElementById('pool-picker-modal').classList.remove('hidden');
+  loadPoolImages().then(() => renderPoolPickerGrid());
+}
+
+function renderPoolPickerGrid() {
+  const container = document.getElementById('pool-picker-grid');
+  const empty = document.getElementById('pool-picker-empty');
+  if (poolImages.length === 0) {
+    container.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  container.innerHTML = poolImages.map(img => `
+    <div class="pool-thumb" data-id="${img.id}" data-url="${esc(img.url)}" data-name="${esc(img.name)}" onclick="selectPoolImage(this, ${img.id}, '${esc(img.url)}')">
+      <img src="${esc(img.url)}" loading="lazy">
+      <div class="pool-name" title="${esc(img.name)}">${esc(img.name)}</div>
+    </div>
+  `).join('');
+}
+
+function selectPoolImage(el, id, url) {
+  document.querySelectorAll('#pool-picker-grid .pool-thumb').forEach(t => t.classList.remove('selected'));
+  el.classList.add('selected');
+  poolPickerSelected = { id, url };
+  document.getElementById('pool-picker-confirm').disabled = false;
+}
+
+async function confirmPoolPick() {
+  if (!poolPickerSelected) return;
+  if (poolPickerTarget.type === 'case') {
+    await authFetch(API + '/api/cases/' + poolPickerTarget.caseId + '/pool-image', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: poolPickerSelected.url }),
+    });
+    loadCases();
+  } else if (poolPickerTarget.type === 'add') {
+    document.getElementById('add-case-pool-url').value = poolPickerSelected.url;
+    const name = poolImages.find(i => i.id === poolPickerSelected.id)?.name || 'Pool image';
+    document.getElementById('add-case-pool-info').textContent = 'Selected: ' + name;
+  }
+  hidePoolPicker();
+}
+
+function hidePoolPicker() {
+  document.getElementById('pool-picker-modal').classList.add('hidden');
+  poolPickerSelected = null;
 }
 
 // ===== Helpers =====

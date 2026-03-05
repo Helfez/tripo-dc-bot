@@ -98,6 +98,18 @@ model Config {
   @@map("config")
 }
 
+// ---- Image Pool ----
+
+model PoolImage {
+  id        Int      @id @default(autoincrement())
+  name      String   @default("")
+  s3Key     String   @map("s3_key")
+  url       String   @default("")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("pool_images")
+}
+
 // ---- Test Platform Models ----
 
 model TestCase {

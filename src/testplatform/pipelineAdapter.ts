@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import axios from 'axios';
 import { runJujumonPipeline } from '../services/jujumonPipeline';
 import { runCreatePipeline } from '../services/createPipeline';
 import { runTournamentPipeline } from '../services/tournamentPipeline';
@@ -33,6 +34,18 @@ function imagePathToDataUrl(imagePath: string): string {
   return `data:${mime};base64,${buf.toString('base64')}`;
 }
 
+async function resolveImageUrl(imagePath: string): Promise<string> {
+  // S3 / remote URL — download and convert to data URL
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    const resp = await axios.get(imagePath, { responseType: 'arraybuffer' });
+    const contentType = resp.headers['content-type'] || 'image/png';
+    const b64 = Buffer.from(resp.data).toString('base64');
+    return `data:${contentType};base64,${b64}`;
+  }
+  // Local file path
+  return imagePathToDataUrl(imagePath);
+}
+
 export interface TestInput {
   prompt?: string;
   imagePath?: string;
@@ -47,7 +60,7 @@ export async function runWorkflow(workflowId: string, input: TestInput): Promise
   const def = getWorkflowDef(workflowId);
   if (!def) throw new Error(`Unknown workflow: ${workflowId}`);
 
-  const imageUrl = input.imagePath ? imagePathToDataUrl(input.imagePath) : undefined;
+  const imageUrl = input.imagePath ? await resolveImageUrl(input.imagePath) : undefined;
   const prompt = input.prompt || undefined;
 
   if (!prompt && !imageUrl) {

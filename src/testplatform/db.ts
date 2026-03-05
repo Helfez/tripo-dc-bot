@@ -102,3 +102,21 @@ export async function getResult(id: number) {
     include: { case: true, task: true },
   });
 }
+
+// ---- PoolImage ----
+
+export async function listPoolImages() {
+  return getPrisma().poolImage.findMany({ orderBy: { createdAt: 'desc' } });
+}
+
+export async function createPoolImage(name: string, s3Key: string, url: string) {
+  return getPrisma().poolImage.create({ data: { name, s3Key, url } });
+}
+
+export async function getPoolImage(id: number) {
+  return getPrisma().poolImage.findUnique({ where: { id } });
+}
+
+export async function deletePoolImage(id: number) {
+  return getPrisma().poolImage.delete({ where: { id } });
+}
