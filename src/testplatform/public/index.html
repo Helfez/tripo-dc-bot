@@ -142,7 +142,10 @@
   <div id="panel-cases" class="panel active">
     <div class="top-bar">
       <h2>Test Cases</h2>
-      <button class="btn btn-primary" onclick="showAddCaseModal()">+ Add Case</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-warning" onclick="showBatchUploadModal()">Batch Upload Images</button>
+        <button class="btn btn-primary" onclick="showAddCaseModal()">+ Add Case</button>
+      </div>
     </div>
     <div class="card">
       <table>
@@ -236,6 +239,23 @@
         <button type="submit" class="btn btn-primary">Add Case</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Batch Upload Modal -->
+<div id="batch-upload-modal" class="modal-overlay hidden" onclick="if(event.target===this)hideBatchUploadModal()">
+  <div class="modal" style="max-width:600px">
+    <h3>Batch Upload Images</h3>
+    <p style="font-size:13px;color:#666;margin-bottom:12px">Select multiple images. File name (without extension) will be matched to case name automatically.</p>
+    <div class="form-group">
+      <input type="file" id="batch-files" accept="image/*" multiple>
+    </div>
+    <div id="batch-preview" style="font-size:13px;color:#666;margin-bottom:12px"></div>
+    <div id="batch-result" style="font-size:13px;margin-bottom:12px" class="hidden"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn" onclick="hideBatchUploadModal()">Close</button>
+      <button type="button" class="btn btn-primary" id="batch-upload-btn" onclick="doBatchUpload()">Upload</button>
+    </div>
   </div>
 </div>
 
@@ -339,17 +359,24 @@ async function loadCases() {
   }
   empty.classList.add('hidden');
 
-  tbody.innerHTML = cases.map(c => `
+  tbody.innerHTML = cases.map(c => {
+    const hasImage = !!c.imagePath;
+    return `
     <tr>
       <td>${c.id}</td>
       <td>${esc(c.name)}</td>
       <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.prompt || '-')}</td>
-      <td>${c.imagePath ? `<img class="img-thumb" src="${imgUrl('/uploads/' + c.imagePath.split('/').pop())}" onerror="this.style.display='none'">` : '-'}</td>
+      <td>${hasImage ? `<img class="img-thumb" src="${imgUrl('/uploads/' + c.imagePath.split('/').pop())}" onerror="this.style.display='none'">` : '<span class="badge badge-error">Missing</span>'}
+        <label class="btn btn-outline btn-sm" style="margin-left:4px;cursor:pointer;display:inline-block">
+          ${hasImage ? 'Replace' : 'Upload'}
+          <input type="file" accept="image/*" style="display:none" onchange="replaceCaseImage(${c.id}, this)">
+        </label>
+      </td>
       <td class="remark-text">${esc(c.remark || '-')}</td>
       <td>${fmtDate(c.createdAt)}</td>
       <td><button class="btn btn-danger btn-sm" onclick="deleteCase(${c.id})">Delete</button></td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 }
 
 function showAddCaseModal() { document.getElementById('add-case-modal').classList.remove('hidden'); }
@@ -373,6 +400,55 @@ async function deleteCase(id) {
   if (!confirm('Delete this test case?')) return;
   await authFetch(API + '/api/cases/' + id, { method: 'DELETE' });
   loadCases();
+}
+
+async function replaceCaseImage(caseId, input) {
+  if (!input.files || !input.files[0]) return;
+  const fd = new FormData();
+  fd.append('image', input.files[0]);
+  await authFetch(API + '/api/cases/' + caseId + '/image', { method: 'PATCH', body: fd });
+  loadCases();
+}
+
+function showBatchUploadModal() {
+  document.getElementById('batch-upload-modal').classList.remove('hidden');
+  document.getElementById('batch-files').value = '';
+  document.getElementById('batch-preview').textContent = '';
+  document.getElementById('batch-result').classList.add('hidden');
+}
+function hideBatchUploadModal() {
+  document.getElementById('batch-upload-modal').classList.add('hidden');
+}
+
+async function doBatchUpload() {
+  const input = document.getElementById('batch-files');
+  if (!input.files || input.files.length === 0) { alert('Please select files first'); return; }
+  const btn = document.getElementById('batch-upload-btn');
+  btn.disabled = true;
+  btn.textContent = 'Uploading...';
+
+  const fd = new FormData();
+  for (const f of input.files) fd.append('images', f);
+
+  try {
+    const res = await authFetch(API + '/api/cases/batch-upload', { method: 'POST', body: fd });
+    const data = await res.json();
+    const resultEl = document.getElementById('batch-result');
+    resultEl.classList.remove('hidden');
+    let html = `<strong>Done!</strong> ${data.matched}/${data.total} matched.<br>`;
+    if (data.details) {
+      const matched = data.details.filter(d => d.matched);
+      const unmatched = data.details.filter(d => !d.matched);
+      if (matched.length) html += `<span style="color:#27ae60">Matched: ${matched.map(d => d.fileName).join(', ')}</span><br>`;
+      if (unmatched.length) html += `<span style="color:#e74c3c">Unmatched: ${unmatched.map(d => d.fileName).join(', ')}</span>`;
+    }
+    resultEl.innerHTML = html;
+    loadCases();
+  } catch (err) {
+    alert('Upload failed: ' + err.message);
+  }
+  btn.disabled = false;
+  btn.textContent = 'Upload';
 }
 
 // ===== Workflows =====

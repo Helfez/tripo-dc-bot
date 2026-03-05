@@ -73,4 +73,55 @@ router.delete('/:id', async (req: Request, res: Response) => {
   }
 });
 
+// Update a single case's image
+router.patch('/:id/image', upload.single('image') as any, async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!req.file) {
+      res.status(400).json({ error: 'No image provided' });
+      return;
+    }
+    await db.updateCaseImage(id, req.file.path);
+    res.json({ ok: true, imagePath: req.file.path });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Batch upload images — match by filename to case name
+router.post('/batch-upload', upload.array('images', 200) as any, async (req: Request, res: Response) => {
+  try {
+    const files = req.files as Express.Multer.File[];
+    if (!files || files.length === 0) {
+      res.status(400).json({ error: 'No files uploaded' });
+      return;
+    }
+
+    const cases = await db.listCases();
+    const results: Array<{ fileName: string; matched: boolean; caseId?: number; caseName?: string }> = [];
+
+    for (const file of files) {
+      // Match by filename (without extension) to case name (case-insensitive)
+      const baseName = path.parse(file.originalname).name.toLowerCase().trim();
+      const matched = cases.find(c => c.name.toLowerCase().trim() === baseName);
+
+      if (matched) {
+        await db.updateCaseImage(matched.id, file.path);
+        results.push({ fileName: file.originalname, matched: true, caseId: matched.id, caseName: matched.name });
+      } else {
+        results.push({ fileName: file.originalname, matched: false });
+      }
+    }
+
+    res.json({
+      total: files.length,
+      matched: results.filter(r => r.matched).length,
+      unmatched: results.filter(r => !r.matched).length,
+      details: results,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

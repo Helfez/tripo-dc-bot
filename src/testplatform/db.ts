@@ -25,6 +25,10 @@ export async function deleteCase(id: number) {
   return getPrisma().testCase.delete({ where: { id } });
 }
 
+export async function updateCaseImage(id: number, imagePath: string) {
+  return getPrisma().testCase.update({ where: { id }, data: { imagePath } });
+}
+
 export async function getCasesByIds(ids: number[]) {
   return getPrisma().testCase.findMany({ where: { id: { in: ids } } });
 }
