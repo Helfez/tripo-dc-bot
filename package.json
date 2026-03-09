@@ -18,6 +18,8 @@
     "@aws-sdk/client-s3": "^3.1002.0",
     "@discordjs/rest": "^2.3.0",
     "@prisma/client": "^5.22.0",
+    "@types/archiver": "^7.0.0",
+    "archiver": "^7.0.1",
     "axios": "^1.7.2",
     "discord-api-types": "^0.37.92",
     "discord.js": "^14.15.3",
