@@ -48,10 +48,6 @@ router.post('/', upload.single('image') as any, async (req: Request, res: Respon
       return;
     }
     const imagePath = req.file ? req.file.path : '';
-    if (!prompt && !imagePath) {
-      res.status(400).json({ error: 'At least prompt or image is required' });
-      return;
-    }
     const testCase = await db.createCase(name, prompt || '', imagePath, remark || '');
     res.json(testCase);
   } catch (err: any) {
