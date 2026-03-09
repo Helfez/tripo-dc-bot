@@ -80,6 +80,10 @@
   .workflow-item.selected { border-color: #4cc9f0; background: #f0faff; }
   .workflow-item .name { font-weight: 600; }
   .workflow-item .pipeline { font-size: 12px; color: #999; margin-top: 4px; }
+  .workflow-item.external { border-left: 3px solid #f39c12; }
+  .workflow-item.external .pipeline { color: #f39c12; }
+  .workflow-group-label { font-size: 14px; font-weight: 700; color: #555; margin: 16px 0 8px; padding-bottom: 4px; border-bottom: 2px solid #eee; }
+  .workflow-group-label:first-child { margin-top: 0; }
   .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
   .img-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 4px; background: #f0f0f0; }
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 100; }
@@ -156,6 +160,7 @@
       <div style="display:flex;gap:8px">
         <button class="btn btn-pool" onclick="showPoolModal()">Manage Pool</button>
         <button class="btn btn-warning" onclick="showBatchUploadModal()">Batch Upload Images</button>
+        <button class="btn btn-success" onclick="downloadCaseImages()">Download Images</button>
         <button class="btn btn-primary" onclick="showAddCaseModal()">+ Add Case</button>
       </div>
     </div>
@@ -171,7 +176,7 @@
   <!-- ===== Run Test Panel ===== -->
   <div id="panel-run" class="panel">
     <h2 style="margin-bottom:16px">Select a Workflow to Test</h2>
-    <div id="workflow-list" class="workflow-list"></div>
+    <div id="workflow-list"></div>
     <div style="margin-top:20px">
       <div class="form-group" style="max-width:400px">
         <label>Task Remark (optional)</label>
@@ -526,19 +531,57 @@ async function doBatchUpload() {
   btn.textContent = 'Upload';
 }
 
+async function downloadCaseImages() {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Downloading...';
+  try {
+    const res = await authFetch(API + '/api/cases/download-images');
+    if (!res.ok) { const err = await res.json(); alert(err.error || 'Download failed'); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'test-case-images.zip';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert('Download failed: ' + err.message);
+  }
+  btn.disabled = false;
+  btn.textContent = 'Download Images';
+}
+
 // ===== Workflows =====
 async function loadWorkflows() {
   const res = await authFetch(API + '/api/workflows');
   const workflows = await res.json();
   const container = document.getElementById('workflow-list');
 
-  container.innerHTML = workflows.map(w => `
-    <div class="workflow-item ${selectedWorkflow === w.id ? 'selected' : ''}" data-id="${w.id}" onclick="selectWorkflow('${w.id}')">
-      <div class="name">${esc(w.name)}</div>
-      <div class="pipeline">${w.pipeline} pipeline</div>
-    </div>
-  `).join('');
+  const internal = workflows.filter(w => w.pipeline !== 'external');
+  const external = workflows.filter(w => w.pipeline === 'external');
 
+  let html = '';
+  if (internal.length) {
+    html += '<div class="workflow-group-label">Internal Pipelines</div>';
+    html += '<div class="workflow-list">' + internal.map(w => `
+      <div class="workflow-item ${selectedWorkflow === w.id ? 'selected' : ''}" data-id="${w.id}" onclick="selectWorkflow('${w.id}')">
+        <div class="name">${esc(w.name)}</div>
+        <div class="pipeline">${w.pipeline} pipeline</div>
+      </div>
+    `).join('') + '</div>';
+  }
+  if (external.length) {
+    html += '<div class="workflow-group-label" style="border-bottom-color:#f39c12;">External API</div>';
+    html += '<div class="workflow-list">' + external.map(w => `
+      <div class="workflow-item external ${selectedWorkflow === w.id ? 'selected' : ''}" data-id="${w.id}" onclick="selectWorkflow('${w.id}')">
+        <div class="name">${esc(w.name)}</div>
+        <div class="pipeline">external API</div>
+      </div>
+    `).join('') + '</div>';
+  }
+
+  container.innerHTML = html;
   updateRunBtn();
 }
 

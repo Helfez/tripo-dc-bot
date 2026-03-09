@@ -10,14 +10,41 @@ import { TournamentTemplate, TOURNAMENT_CHOICES } from '../services/tournamentCo
 export interface WorkflowDef {
   id: string;
   name: string;
-  pipeline: 'jujumon' | 'create' | 'tournament';
+  pipeline: 'jujumon' | 'create' | 'tournament' | 'external';
 }
+
+const EXTERNAL_API_URL = 'http://test-middleware.juju-bit.com/proxy/c3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pbGF6eWZja3pmdGZjZG5haHdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3OTQ2NzcsImV4cCI6MjA2MDM3MDY3N30.shop-toolbox-s/jujubit/9745/workflow/run';
+
+const EXTERNAL_WORKFLOWS: WorkflowDef[] = [
+  { id: 'ext_colorful_dragon', name: '彩色龙摆件', pipeline: 'external' },
+  { id: 'ext_animal_head_scupld_bracelet', name: '动物头部手串', pipeline: 'external' },
+  { id: 'ext_pets_birthday', name: '给小动物戴上生日帽', pipeline: 'external' },
+  { id: 'ext_fantasy_biology_keycap', name: '华丽生物键帽', pipeline: 'external' },
+  { id: 'ext_mushroom_universe', name: '蘑菇', pipeline: 'external' },
+  { id: 'ext_pixar_style_arttoy', name: '皮克斯人偶', pipeline: 'external' },
+  { id: 'ext_animals_on_the_sofa', name: '沙发生物键帽', pipeline: 'external' },
+  { id: 'ext_liquid_dragon', name: '透色龙摆件', pipeline: 'external' },
+  { id: 'ext_ashley_animal', name: 'Ashley Animal', pipeline: 'external' },
+  { id: 'ext_dark_head_scupld', name: 'Fantasy Head Sculpt', pipeline: 'external' },
+  { id: 'ext_funko_pop', name: 'Funko Pop', pipeline: 'external' },
+  { id: 'ext_scenery_magsafe', name: 'MagSafe 城市旅行', pipeline: 'external' },
+  { id: 'ext_astronaut', name: '宇航员', pipeline: 'external' },
+  { id: 'ext_frog_arttoy', name: '青蛙 Art Toy', pipeline: 'external' },
+  { id: 'ext_dessert_keycap', name: 'Sweet Keycap', pipeline: 'external' },
+  { id: 'ext_chibi_figure_arttoy', name: '动森小人', pipeline: 'external' },
+  { id: 'ext_jujumon_keycap', name: 'JuJuMon 键帽', pipeline: 'external' },
+  { id: 'ext_jujumon_card', name: 'JuJuMon 卡牌', pipeline: 'external' },
+  { id: 'ext_jujumon_clay', name: 'JuJuMon 萌版大眼睛', pipeline: 'external' },
+  { id: 'ext_jujumon_trainer', name: 'JuJuMon Trainer', pipeline: 'external' },
+  { id: 'ext_harry_fantasy', name: 'Harry Fantasy', pipeline: 'external' },
+];
 
 // Auto-build from config files so new workflows are picked up automatically
 export const ALL_WORKFLOWS: WorkflowDef[] = [
   { id: 'jujumon_auto', name: 'JuJuMon (Auto-classify)', pipeline: 'jujumon' },
   ...WORKFLOW_CHOICES.map(w => ({ id: `create_${w.value}`, name: w.name, pipeline: 'create' as const })),
   ...TOURNAMENT_CHOICES.map(t => ({ id: `tournament_${t.value}`, name: t.name, pipeline: 'tournament' as const })),
+  ...EXTERNAL_WORKFLOWS,
 ];
 
 export function getWorkflowDef(workflowId: string): WorkflowDef | undefined {
@@ -84,5 +111,54 @@ export async function runWorkflow(workflowId: string, input: TestInput): Promise
     return { imageBuffer: result.imageBuffer, metadata: { templateName: result.templateName } };
   }
 
+  if (def.pipeline === 'external') {
+    return runExternalWorkflow(workflowId, input);
+  }
+
   throw new Error(`Unhandled pipeline type: ${def.pipeline}`);
+}
+
+async function runExternalWorkflow(workflowId: string, input: TestInput): Promise<TestOutput> {
+  // Strip the ext_ prefix to get the actual workflow name for the API
+  const workflowName = workflowId.replace(/^ext_/, '');
+
+  const inputs: Record<string, string> = {};
+  if (input.prompt) inputs.prompt = input.prompt;
+
+  // For image_url: use remote URL directly, convert local file to base64 data URL
+  if (input.imagePath) {
+    if (input.imagePath.startsWith('http://') || input.imagePath.startsWith('https://')) {
+      inputs.image_url = input.imagePath;
+    } else if (fs.existsSync(input.imagePath)) {
+      inputs.image_url = imagePathToDataUrl(input.imagePath);
+    }
+  }
+
+  const body = {
+    name: workflowName,
+    userId: '',
+    callbackUrl: '',
+    metadata: {},
+    inputs,
+  };
+
+  const resp = await axios.post(EXTERNAL_API_URL, body, {
+    headers: { 'Content-Type': 'application/json' },
+    timeout: 120_000,
+  });
+
+  const { code, data, success } = resp.data;
+  if (code !== 200 || !success || data?.status !== 'succeeded') {
+    const msg = data?.message || JSON.stringify(resp.data);
+    throw new Error(`External API failed: ${msg}`);
+  }
+
+  const resultImageUrl: string = data.outputs?.data;
+  if (!resultImageUrl) {
+    throw new Error('External API returned no image URL');
+  }
+
+  // Download result image
+  const imgResp = await axios.get(resultImageUrl, { responseType: 'arraybuffer', timeout: 30_000 });
+  return { imageBuffer: Buffer.from(imgResp.data), metadata: { source: 'external', workflowName } };
 }
