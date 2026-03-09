@@ -13,7 +13,7 @@ export interface WorkflowDef {
   pipeline: 'jujumon' | 'create' | 'tournament' | 'external';
 }
 
-const EXTERNAL_API_URL = 'http://test-middleware.juju-bit.com/proxy/c3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pbGF6eWZja3pmdGZjZG5haHdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3OTQ2NzcsImV4cCI6MjA2MDM3MDY3N30.shop-toolbox-s/jujubit/9745/workflow/run';
+const EXTERNAL_API_URL = 'http://test-middleware.juju-bit.com/proxy/c3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pbGF6eWZja3pmd/shop-toolbox-s/jujubit/9745/workflow/run';
 
 const EXTERNAL_WORKFLOWS: WorkflowDef[] = [
   { id: 'ext_colorful_dragon', name: '彩色龙摆件', pipeline: 'external' },
