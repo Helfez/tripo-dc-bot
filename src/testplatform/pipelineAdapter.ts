@@ -144,7 +144,7 @@ async function runExternalWorkflow(workflowId: string, input: TestInput): Promis
 
   const resp = await axios.post(EXTERNAL_API_URL, body, {
     headers: { 'Content-Type': 'application/json' },
-    timeout: 120_000,
+    timeout: 300_000,
   });
 
   const { code, data, success } = resp.data;
