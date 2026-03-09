@@ -436,6 +436,7 @@ async function loadCases() {
           <input type="file" accept="image/*" style="display:none" onchange="replaceCaseImage(${c.id}, this)">
         </label>
         <button class="btn btn-pool btn-sm" style="margin-left:4px" onclick="showPoolPicker(${c.id})">From Pool</button>
+        ${hasImage ? `<button class="btn btn-outline btn-sm" style="margin-left:4px" onclick="downloadSingleImage(${c.id}, '${esc(c.name)}')">↓</button>` : ''}
       </td>
       <td class="remark-text">${esc(c.remark || '-')}</td>
       <td>${fmtDate(c.createdAt)}</td>
@@ -550,6 +551,20 @@ async function downloadCaseImages() {
   }
   btn.disabled = false;
   btn.textContent = 'Download Images';
+}
+
+async function downloadSingleImage(caseId, caseName) {
+  const res = await authFetch(API + '/api/cases/' + caseId + '/download-image');
+  if (!res.ok) { alert('Download failed'); return; }
+  const blob = await res.blob();
+  const contentType = res.headers.get('content-type') || 'image/png';
+  const ext = contentType.includes('jpeg') ? '.jpg' : contentType.includes('webp') ? '.webp' : '.png';
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = caseName + ext;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ===== Workflows =====

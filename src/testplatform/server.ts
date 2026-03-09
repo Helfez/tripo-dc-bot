@@ -8,6 +8,7 @@ import * as fs from 'fs';
 import { envInit } from '../services/urls';
 import { getPrisma } from './db';
 import casesRouter from './routes/cases';
+import datasetRouter from './routes/dataset';
 import workflowsRouter from './routes/workflows';
 import tasksRouter from './routes/tasks';
 import resultsRouter from './routes/results';
@@ -76,6 +77,9 @@ app.use('/results', staticAuth, express.static(resultsDir));
 
 // Serve the frontend (public, login page included)
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Public API (no auth)
+app.use('/api/dataset', datasetRouter);
 
 // API routes (all behind auth)
 app.use('/api/cases', authMiddleware, casesRouter);

@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import multer from 'multer';
+import archiver from 'archiver';
+import axios from 'axios';
 import * as db from '../db';
 
 const UPLOADS_DIR = path.resolve(process.cwd(), 'data/testplatform/uploads');
@@ -137,6 +139,78 @@ router.patch('/:id/pool-image', async (req: Request, res: Response) => {
     res.json({ ok: true, imagePath: url });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Download a single case image
+router.get('/:id/download-image', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const cases = await db.listCases();
+    const found = cases.find(c => c.id === id);
+    if (!found || !found.imagePath) {
+      res.status(404).json({ error: 'Image not found' });
+      return;
+    }
+
+    if (found.imagePath.startsWith('http://') || found.imagePath.startsWith('https://')) {
+      const response = await axios.get(found.imagePath, { responseType: 'arraybuffer', timeout: 15000 });
+      const contentType = response.headers['content-type'] || 'image/png';
+      const ext = contentType.includes('jpeg') ? '.jpg' : contentType.includes('webp') ? '.webp' : '.png';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${found.name}${ext}"`);
+      res.send(Buffer.from(response.data));
+    } else if (fs.existsSync(found.imagePath)) {
+      const ext = path.extname(found.imagePath) || '.png';
+      res.setHeader('Content-Disposition', `attachment; filename="${found.name}${ext}"`);
+      res.sendFile(path.resolve(found.imagePath));
+    } else {
+      res.status(404).json({ error: 'Image file not found on disk' });
+    }
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Download all case images as a zip
+router.get('/download-images', async (_req: Request, res: Response) => {
+  try {
+    const cases = await db.listCases();
+    const casesWithImage = cases.filter(c => c.imagePath);
+    if (casesWithImage.length === 0) {
+      res.status(404).json({ error: 'No images to download' });
+      return;
+    }
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', 'attachment; filename="test-case-images.zip"');
+
+    const archive = archiver('zip', { zlib: { level: 5 } });
+    archive.on('error', (err) => { throw err; });
+    archive.pipe(res as any);
+
+    for (const c of casesWithImage) {
+      const ext = path.extname(c.imagePath) || '.png';
+      const fileName = `${c.name}${ext}`;
+
+      if (c.imagePath.startsWith('http://') || c.imagePath.startsWith('https://')) {
+        // Remote image: download and append to archive
+        try {
+          const response = await axios.get(c.imagePath, { responseType: 'arraybuffer', timeout: 15000 });
+          archive.append(Buffer.from(response.data), { name: fileName });
+        } catch {
+          // Skip images that fail to download
+        }
+      } else if (fs.existsSync(c.imagePath)) {
+        archive.file(c.imagePath, { name: fileName });
+      }
+    }
+
+    await archive.finalize();
+  } catch (err: any) {
+    if (!res.headersSent) {
+      res.status(500).json({ error: err.message });
+    }
   }
 });
 
