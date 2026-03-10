@@ -37,6 +37,8 @@ const EXTERNAL_WORKFLOWS: WorkflowDef[] = [
   { id: 'ext_jujumon_clay', name: 'JuJuMon 萌版大眼睛', pipeline: 'external' },
   { id: 'ext_jujumon_trainer', name: 'JuJuMon Trainer', pipeline: 'external' },
   { id: 'ext_harry_fantasy', name: 'Harry Fantasy', pipeline: 'external' },
+  { id: 'ext_DND_human', name: 'DND-Aetherra世界-用户角色生成', pipeline: 'external' },
+  { id: 'ext_DND_creature', name: 'DND-Aetherra世界-生物生成', pipeline: 'external' },
 ];
 
 // Auto-build from config files so new workflows are picked up automatically
