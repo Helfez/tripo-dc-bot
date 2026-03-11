@@ -42,7 +42,7 @@ export async function runTournamentPipeline(
   // Step 1: Semantic analysis
   await callbacks?.onAnalyzing?.();
   tLog.log(LOG_ACTIONS.SYS, `pipeline [${template}] step1: semantic analysis`);
-  const generatedPrompt = await generateTextWithVision(
+  let generatedPrompt = await generateTextWithVision(
     apiKey,
     config.systemPrompt,
     prompt || '',
@@ -50,6 +50,21 @@ export async function runTournamentPipeline(
     config.visionModel,
   );
   tLog.log(LOG_ACTIONS.SYS, `pipeline [${template}] generated prompt:`, generatedPrompt.substring(0, 120));
+
+  // Extract image_prompt from JSON if configured
+  if (config.promptExtractor === 'json_image_prompt') {
+    try {
+      const firstBrace = generatedPrompt.indexOf('{');
+      const lastBrace = generatedPrompt.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        const jsonStr = generatedPrompt.substring(firstBrace, lastBrace + 1);
+        const parsed = JSON.parse(jsonStr);
+        generatedPrompt = parsed.image_prompt || generatedPrompt;
+      }
+    } catch (e) {
+      tLog.logError(LOG_ACTIONS.SYS, `pipeline [${template}] JSON parse failed, using raw output`);
+    }
+  }
 
   // Step 2: Image generation
   await callbacks?.onGenerating?.();
