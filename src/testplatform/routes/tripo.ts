@@ -112,6 +112,7 @@ router.get('/:id/status', async (req: Request, res: Response) => {
       progress: task.progress,
       shareUrl: task.shareUrl,
       renderedImage: task.renderedImage,
+      modelUrl: task.modelUrl,
       error: task.error,
     });
   } catch (err: any) {

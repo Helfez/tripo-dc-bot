@@ -290,6 +290,7 @@
             <th>Status</th>
             <th>Progress</th>
             <th>Preview</th>
+            <th>Model</th>
             <th>Rendered</th>
             <th>Duration</th>
             <th>Created</th>
@@ -1141,6 +1142,9 @@ async function loadTripoTasks() {
     const previewLink = t.shareUrl
       ? `<a href="${esc(t.shareUrl)}" target="_blank" class="btn btn-sm btn-primary">View 3D</a>`
       : '-';
+    const downloadLink = t.modelUrl
+      ? `<a href="${esc(t.modelUrl)}" target="_blank" class="btn btn-sm btn-success" download>Download</a>`
+      : '-';
     const rendered = t.renderedImage
       ? `<img class="img-thumb" src="${esc(t.renderedImage)}" style="cursor:pointer" onclick="window.open(this.src,'_blank')">`
       : '-';
@@ -1161,6 +1165,7 @@ async function loadTripoTasks() {
         <span style="font-size:11px;color:#666">${t.progress}%</span>
       </td>
       <td>${previewLink}</td>
+      <td>${downloadLink}</td>
       <td>${rendered}</td>
       <td>${duration}</td>
       <td>${fmtDate(t.createdAt)}</td>

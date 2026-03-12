@@ -1,8 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import axios from 'axios';
 import tRequest from '../services/config';
 import { ENVS, Urls } from '../services/urls';
 import * as db from './db';
+import { uploadToS3WithKey } from './s3Client';
+
+const TRIPO_MODEL_FOLDER = 'tripo-models/';
 
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
@@ -85,10 +89,26 @@ export async function runTripoGeneration(dbTaskId: number): Promise<void> {
       if (s.status === 'success') {
         const durationMs = Date.now() - startTime;
         const shareUrl = `${ENVS.shareUrl}${tripoTaskId}`;
+
+        // Persist model to S3 so the URL doesn't expire
+        let modelUrl = s.output?.model || '';
+        if (modelUrl) {
+          try {
+            const modelResp = await axios.get(modelUrl, { responseType: 'arraybuffer' });
+            const modelBuffer = Buffer.from(modelResp.data);
+            const s3Key = `${TRIPO_MODEL_FOLDER}${tripoTaskId}.glb`;
+            const { url } = await uploadToS3WithKey(modelBuffer, s3Key, 'model/gltf-binary');
+            modelUrl = url;
+          } catch (e: any) {
+            console.error(`[tripo] Failed to upload model to S3 for task ${tripoTaskId}:`, e.message);
+            // Fall back to the temporary Tripo URL
+          }
+        }
+
         await db.updateTripoTask(dbTaskId, {
           status: 'success',
           progress: 100,
-          modelUrl: s.output?.model || '',
+          modelUrl,
           renderedImage: s.output?.rendered_image || '',
           renderedVideo: s.output?.rendered_video || '',
           shareUrl,
