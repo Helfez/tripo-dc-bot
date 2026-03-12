@@ -22,8 +22,16 @@ export async function uploadImageToTripo(buffer: Buffer, format: string): Promis
   return res.data.data.image_token;
 }
 
-export async function createTripoTask(fileToken: string, format: string = 'png', faceLimit: number = 200000, modelVersion: string = 'v2.0-20240919'): Promise<string> {
-  const res = await tRequest.instance.post(Urls.task.create, {
+export async function createTripoTask(
+  fileToken: string,
+  format: string = 'png',
+  faceLimit: number = 200000,
+  modelVersion: string = 'v2.0-20240919',
+  textureQuality: string = 'standard',
+  texture: boolean = false,
+  pbr: boolean = false,
+): Promise<string> {
+  const body: Record<string, any> = {
     type: 'image_to_model',
     file: {
       type: format,
@@ -31,7 +39,11 @@ export async function createTripoTask(fileToken: string, format: string = 'png',
     },
     face_limit: faceLimit,
     model_version: modelVersion,
-  });
+  };
+  if (textureQuality !== 'standard') body.texture_quality = textureQuality;
+  if (texture) body.texture = true;
+  if (pbr) body.pbr = true;
+  const res = await tRequest.instance.post(Urls.task.create, body);
   return res.data.data.task_id;
 }
 
@@ -78,7 +90,7 @@ export async function runTripoGeneration(dbTaskId: number): Promise<void> {
 
     // Create Tripo task
     await db.updateTripoTask(dbTaskId, { status: 'creating', progress: 10 });
-    const tripoTaskId = await createTripoTask(imageToken, ext, task.faceLimit, task.modelVersion);
+    const tripoTaskId = await createTripoTask(imageToken, ext, task.faceLimit, task.modelVersion, task.textureQuality, task.texture, task.pbr);
     await db.updateTripoTask(dbTaskId, { tripoTaskId, status: 'running', progress: 15 });
 
     // Poll until done

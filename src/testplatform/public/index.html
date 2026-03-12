@@ -281,6 +281,24 @@
               </label>
             </div>
           </div>
+        </div>
+        <div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px">
+          <div class="form-group" style="margin-bottom:0">
+            <label>Texture Quality</label>
+            <select id="tripo-texture-quality" style="margin-bottom:0;padding:4px 8px">
+              <option value="standard">standard</option>
+              <option value="detailed">detailed</option>
+            </select>
+          </div>
+          <label style="font-weight:normal;font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer;margin-bottom:4px">
+            <input type="checkbox" id="tripo-texture"> Texture
+          </label>
+          <label style="font-weight:normal;font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer;margin-bottom:4px">
+            <input type="checkbox" id="tripo-pbr"> PBR
+          </label>
+          <button type="button" class="btn" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:13px;padding:6px 14px;margin-bottom:0" onclick="applyHDPreset()">一键高清</button>
+        </div>
+        <div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">
           <div style="display:flex;align-items:center;gap:12px">
             <button type="submit" class="btn btn-primary" id="tripo-submit-btn">Generate 3D</button>
             <span id="tripo-summary" style="font-size:13px;color:#666"></span>
@@ -1246,6 +1264,9 @@ async function submitTripo(e) {
       fd.append('faceLimit', String(faceLimit));
       fd.append('repeatCount', String(repeatCount));
       fd.append('modelVersions', JSON.stringify(selectedVersions));
+      fd.append('textureQuality', document.getElementById('tripo-texture-quality').value);
+      fd.append('texture', String(document.getElementById('tripo-texture').checked));
+      fd.append('pbr', String(document.getElementById('tripo-pbr').checked));
       const res = await fetch(API + '/api/tripo', {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + authToken },
@@ -1263,6 +1284,9 @@ async function submitTripo(e) {
     document.querySelector('#tripo-versions input[value="v2.0-20240919"]').checked = true;
     document.getElementById('tripo-face-limit').value = '200000';
     document.getElementById('tripo-repeat').value = '1';
+    document.getElementById('tripo-texture-quality').value = 'standard';
+    document.getElementById('tripo-texture').checked = false;
+    document.getElementById('tripo-pbr').checked = false;
     updateTripoSummary();
     loadTripoTasks();
     allTasks.forEach(t => startTripoPoller(t.id));
@@ -1285,6 +1309,13 @@ function updateTripoSummary() {
   } else {
     el.textContent = '';
   }
+}
+
+function applyHDPreset() {
+  document.getElementById('tripo-texture-quality').value = 'detailed';
+  document.getElementById('tripo-texture').checked = true;
+  document.getElementById('tripo-pbr').checked = true;
+  document.getElementById('tripo-face-limit').value = '5000000';
 }
 
 function toggleTripoSelectAll(checked) {

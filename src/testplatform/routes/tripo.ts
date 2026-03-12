@@ -49,6 +49,9 @@ router.post('/', upload.single('image') as any, async (req: Request, res: Respon
 
     const faceLimit = Math.min(5000000, Math.max(50000, parseInt(req.body.faceLimit, 10) || 200000));
     const repeatCount = Math.min(10, Math.max(1, parseInt(req.body.repeatCount, 10) || 1));
+    const textureQuality = req.body.textureQuality === 'detailed' ? 'detailed' : 'standard';
+    const texture = req.body.texture === 'true';
+    const pbr = req.body.pbr === 'true';
     let modelVersions: string[];
     try {
       modelVersions = JSON.parse(req.body.modelVersions || '[]');
@@ -71,7 +74,7 @@ router.post('/', upload.single('image') as any, async (req: Request, res: Respon
         const suffix = modelVersions.length > 1 || repeatCount > 1
           ? ` [${version}${repeatCount > 1 ? ` #${i + 1}` : ''}]`
           : '';
-        const record = await db.createTripoTaskRecord(taskName + suffix, imagePath, faceLimit, version);
+        const record = await db.createTripoTaskRecord(taskName + suffix, imagePath, faceLimit, version, textureQuality, texture, pbr);
         records.push(record);
 
         // Fire-and-forget

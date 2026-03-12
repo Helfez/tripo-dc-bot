@@ -127,8 +127,16 @@ export async function listTripoTasks() {
   return getPrisma().tripoTask.findMany({ orderBy: { createdAt: 'desc' } });
 }
 
-export async function createTripoTaskRecord(name: string, imagePath: string, faceLimit: number = 200000, modelVersion: string = 'v2.0-20240919') {
-  return getPrisma().tripoTask.create({ data: { name, inputImagePath: imagePath, faceLimit, modelVersion } });
+export async function createTripoTaskRecord(
+  name: string,
+  imagePath: string,
+  faceLimit: number = 200000,
+  modelVersion: string = 'v2.0-20240919',
+  textureQuality: string = 'standard',
+  texture: boolean = false,
+  pbr: boolean = false,
+) {
+  return getPrisma().tripoTask.create({ data: { name, inputImagePath: imagePath, faceLimit, modelVersion, textureQuality, texture, pbr } });
 }
 
 export async function getTripoTask(id: number) {
