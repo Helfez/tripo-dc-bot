@@ -1,0 +1,34 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: jujumon
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jujumon_secret}
+      POSTGRES_DB: jujumon
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jujumon"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  bot:
+    build: .
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://jujumon:${POSTGRES_PASSWORD:-jujumon_secret}@db:5432/jujumon?schema=public
+    ports:
+      - "4000:4000"
+    volumes:
+      - /data/testplatform:/app/data/testplatform
+
+volumes:
+  pgdata:

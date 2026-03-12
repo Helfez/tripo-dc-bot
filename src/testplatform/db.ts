@@ -120,3 +120,36 @@ export async function getPoolImage(id: number) {
 export async function deletePoolImage(id: number) {
   return getPrisma().poolImage.delete({ where: { id } });
 }
+
+// ---- TripoTask ----
+
+export async function listTripoTasks() {
+  return getPrisma().tripoTask.findMany({ orderBy: { createdAt: 'desc' } });
+}
+
+export async function createTripoTaskRecord(name: string, imagePath: string) {
+  return getPrisma().tripoTask.create({ data: { name, inputImagePath: imagePath } });
+}
+
+export async function getTripoTask(id: number) {
+  return getPrisma().tripoTask.findUnique({ where: { id } });
+}
+
+export async function updateTripoTask(id: number, data: {
+  tripoTaskId?: string;
+  status?: string;
+  progress?: number;
+  modelUrl?: string;
+  renderedImage?: string;
+  renderedVideo?: string;
+  shareUrl?: string;
+  error?: string;
+  durationMs?: number;
+  finishedAt?: Date;
+}) {
+  return getPrisma().tripoTask.update({ where: { id }, data });
+}
+
+export async function deleteTripoTask(id: number) {
+  return getPrisma().tripoTask.delete({ where: { id } });
+}

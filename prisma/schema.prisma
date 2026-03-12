@@ -3,9 +3,8 @@ generator client {
   binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
-// 本地开发用 SQLite，生产切换为 postgresql
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -161,4 +160,25 @@ model TestResult {
   case   TestCase @relation(fields: [caseId], references: [id])
 
   @@map("test_results")
+}
+
+// ---- Tripo 3D Generation ----
+
+model TripoTask {
+  id              Int       @id @default(autoincrement())
+  name            String    @default("")
+  inputImagePath  String    @default("") @map("input_image_path")
+  tripoTaskId     String    @default("") @map("tripo_task_id")
+  status          String    @default("pending")
+  progress        Int       @default(0)
+  modelUrl        String    @default("") @map("model_url")
+  renderedImage   String    @default("") @map("rendered_image")
+  renderedVideo   String    @default("") @map("rendered_video")
+  shareUrl        String    @default("") @map("share_url")
+  error           String    @default("")
+  durationMs      Int       @default(0) @map("duration_ms")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  finishedAt      DateTime? @map("finished_at")
+
+  @@map("tripo_tasks")
 }

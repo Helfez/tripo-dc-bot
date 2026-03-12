@@ -13,6 +13,7 @@ import workflowsRouter from './routes/workflows';
 import tasksRouter from './routes/tasks';
 import resultsRouter from './routes/results';
 import poolRouter from './routes/pool';
+import tripoRouter from './routes/tripo';
 
 // 全局异常捕获，防止测试平台进程崩溃
 process.on('uncaughtException', (err) => {
@@ -87,6 +88,7 @@ app.use('/api/workflows', authMiddleware, workflowsRouter);
 app.use('/api/tasks', authMiddleware, tasksRouter);
 app.use('/api/results', authMiddleware, resultsRouter);
 app.use('/api/pool', authMiddleware, poolRouter);
+app.use('/api/tripo', authMiddleware, tripoRouter);
 
 // Start
 async function main() {

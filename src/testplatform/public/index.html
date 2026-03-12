@@ -150,6 +150,7 @@
   <div class="tab active" data-tab="cases">Test Cases</div>
   <div class="tab" data-tab="run">Run Test</div>
   <div class="tab" data-tab="tasks">Tasks & Results</div>
+  <div class="tab" data-tab="tripo">3D Generation</div>
 </div>
 
 <div class="content">
@@ -228,9 +229,48 @@
       <div id="detail-results" class="grid"></div>
     </div>
   </div>
-</div>
 
-<!-- Add Case Modal -->
+  <!-- ===== 3D Generation Panel ===== -->
+  <div id="panel-tripo" class="panel">
+    <div class="top-bar">
+      <h2>3D Generation</h2>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:12px">Generate 3D Model from Image</h3>
+      <form id="tripo-form" onsubmit="submitTripo(event)" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+        <div class="form-group" style="flex:1;min-width:150px;margin-bottom:0">
+          <label>Name</label>
+          <input type="text" id="tripo-name" placeholder="e.g. Dragon Model" style="margin-bottom:0">
+        </div>
+        <div class="form-group" style="flex:1;min-width:200px;margin-bottom:0">
+          <label>Image *</label>
+          <input type="file" id="tripo-image" accept="image/*" required style="margin-bottom:0">
+        </div>
+        <button type="submit" class="btn btn-primary" id="tripo-submit-btn">Generate 3D</button>
+      </form>
+    </div>
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Input</th>
+            <th>Status</th>
+            <th>Progress</th>
+            <th>Preview</th>
+            <th>Rendered</th>
+            <th>Duration</th>
+            <th>Created</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tripo-table"></tbody>
+      </table>
+      <div id="tripo-empty" class="empty hidden">No 3D generation tasks yet.</div>
+    </div>
+  </div>
+</div>
 <div id="add-case-modal" class="modal-overlay hidden" onclick="if(event.target===this)hideAddCaseModal()">
   <div class="modal">
     <h3>Add Test Case</h3>
@@ -397,6 +437,7 @@ document.querySelectorAll('.tab').forEach(tab => {
     if (tab.dataset.tab === 'cases') loadCases();
     if (tab.dataset.tab === 'run') loadWorkflows();
     if (tab.dataset.tab === 'tasks') { loadTasks(); showTaskList(); }
+    if (tab.dataset.tab === 'tripo') loadTripoTasks();
   });
 });
 
@@ -1040,6 +1081,130 @@ async function confirmPoolPick() {
 function hidePoolPicker() {
   document.getElementById('pool-picker-modal').classList.add('hidden');
   poolPickerSelected = null;
+}
+
+// ===== 3D Generation (Tripo) =====
+const tripoPollers = {};
+
+async function loadTripoTasks() {
+  const res = await authFetch(API + '/api/tripo');
+  const tasks = await res.json();
+  const tbody = document.getElementById('tripo-table');
+  const empty = document.getElementById('tripo-empty');
+
+  if (tasks.length === 0) {
+    tbody.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  tbody.innerHTML = tasks.map(t => {
+    const inputThumb = t.inputImagePath
+      ? `<img class="img-thumb" src="${imgUrl('/uploads/' + t.inputImagePath.split('/').pop())}" onerror="this.style.display='none'">`
+      : '-';
+    const statusClass = t.status === 'success' ? 'badge-success'
+      : t.status === 'error' ? 'badge-error'
+      : (t.status === 'running' || t.status === 'uploading' || t.status === 'creating') ? 'badge-running'
+      : 'badge-pending';
+    const previewLink = t.shareUrl
+      ? `<a href="${esc(t.shareUrl)}" target="_blank" class="btn btn-sm btn-primary">View 3D</a>`
+      : '-';
+    const rendered = t.renderedImage
+      ? `<img class="img-thumb" src="${esc(t.renderedImage)}" style="cursor:pointer" onclick="window.open(this.src,'_blank')">`
+      : '-';
+    const duration = t.durationMs ? (t.durationMs / 1000).toFixed(1) + 's' : '-';
+    const errorInfo = t.error ? `<div style="font-size:11px;color:#e74c3c;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(t.error)}">${esc(t.error)}</div>` : '';
+
+    return `<tr>
+      <td>${t.id}</td>
+      <td>${esc(t.name)}</td>
+      <td>${inputThumb}</td>
+      <td><span class="badge ${statusClass}">${t.status}</span>${errorInfo}</td>
+      <td>
+        <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${t.progress}%"></div></div>
+        <span style="font-size:11px;color:#666">${t.progress}%</span>
+      </td>
+      <td>${previewLink}</td>
+      <td>${rendered}</td>
+      <td>${duration}</td>
+      <td>${fmtDate(t.createdAt)}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteTripoTask(${t.id})">Delete</button></td>
+    </tr>`;
+  }).join('');
+
+  // Start polling for in-progress tasks
+  tasks.forEach(t => {
+    if (['pending','uploading','creating','running'].includes(t.status)) {
+      startTripoPoller(t.id);
+    }
+  });
+}
+
+function startTripoPoller(id) {
+  if (tripoPollers[id]) return;
+  tripoPollers[id] = setInterval(async () => {
+    try {
+      const res = await authFetch(API + '/api/tripo/' + id + '/status');
+      const s = await res.json();
+      if (s.status === 'success' || s.status === 'error') {
+        clearInterval(tripoPollers[id]);
+        delete tripoPollers[id];
+        loadTripoTasks();
+      } else {
+        // Update progress inline
+        loadTripoTasks();
+      }
+    } catch (e) {
+      clearInterval(tripoPollers[id]);
+      delete tripoPollers[id];
+    }
+  }, 3000);
+}
+
+async function submitTripo(e) {
+  e.preventDefault();
+  const name = document.getElementById('tripo-name').value.trim();
+  const fileInput = document.getElementById('tripo-image');
+  if (!fileInput.files.length) return alert('Please select an image');
+
+  const btn = document.getElementById('tripo-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Uploading...';
+
+  try {
+    const fd = new FormData();
+    fd.append('name', name);
+    fd.append('image', fileInput.files[0]);
+    const res = await fetch(API + '/api/tripo', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + authToken },
+      body: fd,
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed');
+    }
+    const task = await res.json();
+    document.getElementById('tripo-form').reset();
+    loadTripoTasks();
+    startTripoPoller(task.id);
+  } catch (err) {
+    alert('Error: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Generate 3D';
+  }
+}
+
+async function deleteTripoTask(id) {
+  if (!confirm('Delete this 3D task?')) return;
+  await authFetch(API + '/api/tripo/' + id, { method: 'DELETE' });
+  if (tripoPollers[id]) {
+    clearInterval(tripoPollers[id]);
+    delete tripoPollers[id];
+  }
+  loadTripoTasks();
 }
 
 // ===== Helpers =====
