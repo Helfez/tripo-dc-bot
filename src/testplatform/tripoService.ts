@@ -91,6 +91,7 @@ export async function runTripoGeneration(dbTaskId: number): Promise<void> {
         const shareUrl = `${ENVS.shareUrl}${tripoTaskId}`;
 
         // Persist model to S3 so the URL doesn't expire
+        console.log(`[tripo] Task ${tripoTaskId} output:`, JSON.stringify(s.output));
         let modelUrl = s.output?.model || '';
         if (modelUrl) {
           try {
