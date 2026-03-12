@@ -244,8 +244,8 @@
             <input type="text" id="tripo-name" placeholder="e.g. Dragon Model" style="margin-bottom:0">
           </div>
           <div class="form-group" style="flex:1;min-width:200px;margin-bottom:0">
-            <label>Image *</label>
-            <input type="file" id="tripo-image" accept="image/*" required style="margin-bottom:0">
+            <label>Images * (max 9)</label>
+            <input type="file" id="tripo-image" accept="image/*" multiple required style="margin-bottom:0" onchange="updateTripoSummary()">
           </div>
           <div class="form-group" style="min-width:160px;margin-bottom:0">
             <label>Face Limit</label>
@@ -289,7 +289,6 @@
             <th>Faces</th>
             <th>Status</th>
             <th>Progress</th>
-            <th>Preview</th>
             <th>Model</th>
             <th>Rendered</th>
             <th>Duration</th>
@@ -1141,10 +1140,10 @@ async function loadTripoTasks() {
       : 'badge-pending';
     const previewLink = t.shareUrl
       ? `<a href="${esc(t.shareUrl)}" target="_blank" class="btn btn-sm btn-primary">View 3D</a>`
-      : '-';
+      : '';
     const downloadLink = t.modelUrl
       ? `<a href="${esc(t.modelUrl)}" target="_blank" class="btn btn-sm btn-success" download>Download</a>`
-      : '-';
+      : '';
     const rendered = t.renderedImage
       ? `<img class="img-thumb" src="${esc(t.renderedImage)}" style="cursor:pointer" onclick="window.open(this.src,'_blank')">`
       : '-';
@@ -1164,8 +1163,7 @@ async function loadTripoTasks() {
         <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${t.progress}%"></div></div>
         <span style="font-size:11px;color:#666">${t.progress}%</span>
       </td>
-      <td>${previewLink}</td>
-      <td>${downloadLink}</td>
+      <td>${previewLink} ${downloadLink}</td>
       <td>${rendered}</td>
       <td>${duration}</td>
       <td>${fmtDate(t.createdAt)}</td>
@@ -1206,7 +1204,8 @@ async function submitTripo(e) {
   e.preventDefault();
   const name = document.getElementById('tripo-name').value.trim();
   const fileInput = document.getElementById('tripo-image');
-  if (!fileInput.files.length) return alert('Please select an image');
+  if (!fileInput.files.length) return alert('Please select at least one image');
+  if (fileInput.files.length > 9) return alert('Maximum 9 images allowed');
 
   const selectedVersions = Array.from(document.querySelectorAll('#tripo-versions input[type=checkbox]:checked')).map(cb => cb.value);
   if (!selectedVersions.length) return alert('Please select at least one model version');
@@ -1219,22 +1218,26 @@ async function submitTripo(e) {
   btn.textContent = 'Uploading...';
 
   try {
-    const fd = new FormData();
-    fd.append('name', name);
-    fd.append('image', fileInput.files[0]);
-    fd.append('faceLimit', String(faceLimit));
-    fd.append('repeatCount', String(repeatCount));
-    fd.append('modelVersions', JSON.stringify(selectedVersions));
-    const res = await fetch(API + '/api/tripo', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + authToken },
-      body: fd,
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'Failed');
+    const allTasks = [];
+    for (const file of fileInput.files) {
+      const fd = new FormData();
+      fd.append('name', name || file.name);
+      fd.append('image', file);
+      fd.append('faceLimit', String(faceLimit));
+      fd.append('repeatCount', String(repeatCount));
+      fd.append('modelVersions', JSON.stringify(selectedVersions));
+      const res = await fetch(API + '/api/tripo', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + authToken },
+        body: fd,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed');
+      }
+      const tasks = await res.json();
+      allTasks.push(...(Array.isArray(tasks) ? tasks : [tasks]));
     }
-    const tasks = await res.json();
     document.getElementById('tripo-form').reset();
     // Re-check default version after reset
     document.querySelector('#tripo-versions input[value="v2.0-20240919"]').checked = true;
@@ -1242,7 +1245,7 @@ async function submitTripo(e) {
     document.getElementById('tripo-repeat').value = '1';
     updateTripoSummary();
     loadTripoTasks();
-    (Array.isArray(tasks) ? tasks : [tasks]).forEach(t => startTripoPoller(t.id));
+    allTasks.forEach(t => startTripoPoller(t.id));
   } catch (err) {
     alert('Error: ' + err.message);
   } finally {
@@ -1254,10 +1257,11 @@ async function submitTripo(e) {
 function updateTripoSummary() {
   const versions = document.querySelectorAll('#tripo-versions input[type=checkbox]:checked').length;
   const repeat = parseInt(document.getElementById('tripo-repeat').value, 10) || 1;
-  const total = versions * repeat;
+  const images = document.getElementById('tripo-image').files?.length || 1;
+  const total = images * versions * repeat;
   const el = document.getElementById('tripo-summary');
   if (total > 1) {
-    el.textContent = `${versions} version(s) x ${repeat} repeat(s) = ${total} tasks`;
+    el.textContent = `${images} image(s) x ${versions} version(s) x ${repeat} repeat(s) = ${total} tasks`;
   } else {
     el.textContent = '';
   }

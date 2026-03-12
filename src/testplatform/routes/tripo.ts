@@ -59,7 +59,10 @@ router.post('/', upload.single('image') as any, async (req: Request, res: Respon
       modelVersions = ['v2.0-20240919'];
     }
 
-    const taskName = name || req.file.originalname || 'Untitled';
+    const originalName = req.file.originalname
+      ? Buffer.from(req.file.originalname, 'latin1').toString('utf8')
+      : 'Untitled';
+    const taskName = name || originalName;
     const imagePath = req.file.path;
     const records = [];
 
