@@ -40,6 +40,7 @@ interface TripoTaskStatus {
   progress: number;
   output?: {
     model?: string;
+    pbr_model?: string;
     rendered_image?: string;
     rendered_video?: string;
   };
@@ -91,8 +92,7 @@ export async function runTripoGeneration(dbTaskId: number): Promise<void> {
         const shareUrl = `${ENVS.shareUrl}${tripoTaskId}`;
 
         // Persist model to S3 so the URL doesn't expire
-        console.log(`[tripo] Task ${tripoTaskId} output:`, JSON.stringify(s.output));
-        let modelUrl = s.output?.model || '';
+        let modelUrl = s.output?.pbr_model || s.output?.model || '';
         if (modelUrl) {
           try {
             const modelResp = await axios.get(modelUrl, { responseType: 'arraybuffer' });
