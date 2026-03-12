@@ -123,6 +123,7 @@
   .btn-pool { background: #8e44ad; color: #fff; }
   .btn-pool:hover { background: #7d3c98; }
 </style>
+<script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 </head>
 <body>
 
@@ -1141,6 +1142,9 @@ async function loadTripoTasks() {
     const previewLink = t.shareUrl
       ? `<a href="${esc(t.shareUrl)}" target="_blank" class="btn btn-sm btn-primary">View 3D</a>`
       : '';
+    const preview3dBtn = t.modelUrl
+      ? `<button class="btn btn-sm" style="background:#8e44ad;color:#fff" onclick="show3DPreview('${esc(t.modelUrl)}','${esc(t.name)}')">Preview</button>`
+      : '';
     const downloadLink = t.modelUrl
       ? `<a href="${esc(t.modelUrl)}" target="_blank" class="btn btn-sm btn-success" download>Download</a>`
       : '';
@@ -1163,7 +1167,7 @@ async function loadTripoTasks() {
         <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${t.progress}%"></div></div>
         <span style="font-size:11px;color:#666">${t.progress}%</span>
       </td>
-      <td>${previewLink} ${downloadLink}</td>
+      <td>${preview3dBtn} ${downloadLink}</td>
       <td>${rendered}</td>
       <td>${duration}</td>
       <td>${fmtDate(t.createdAt)}</td>
@@ -1285,6 +1289,37 @@ function fmtDate(iso) { if (!iso) return '-'; const d = new Date(iso); return d.
 if (authToken) {
   showApp();
 }
+
+function show3DPreview(url, name) {
+  const modal = document.getElementById('preview-3d-modal');
+  const viewer = document.getElementById('preview-3d-viewer');
+  document.getElementById('preview-3d-title').textContent = name || '3D Preview';
+  viewer.setAttribute('src', url);
+  modal.classList.remove('hidden');
+}
+
+function hide3DPreview() {
+  const modal = document.getElementById('preview-3d-modal');
+  const viewer = document.getElementById('preview-3d-viewer');
+  modal.classList.add('hidden');
+  viewer.removeAttribute('src');
+}
 </script>
+
+<!-- 3D Preview Modal -->
+<div id="preview-3d-modal" class="modal-overlay hidden" onclick="if(event.target===this)hide3DPreview()" style="z-index:200">
+  <div style="background:#1a1a2e;border-radius:12px;width:90%;max-width:800px;height:80vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;color:#fff">
+      <h3 id="preview-3d-title" style="margin:0;font-size:16px">3D Preview</h3>
+      <button onclick="hide3DPreview()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:0 4px">&times;</button>
+    </div>
+    <model-viewer id="preview-3d-viewer"
+      camera-controls touch-action="pan-y"
+      auto-rotate shadow-intensity="1"
+      style="flex:1;width:100%;background:#2d2d44">
+    </model-viewer>
+  </div>
+</div>
+
 </body>
 </html>
