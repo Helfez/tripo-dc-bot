@@ -40,7 +40,6 @@ export async function uploadToS3WithKey(buffer: Buffer, s3Key: string, contentTy
     Key: s3Key,
     Body: buffer,
     ContentType: contentType,
-    ACL: 'public-read',
   }));
   return { s3Key, url: getPublicUrl(s3Key) };
 }

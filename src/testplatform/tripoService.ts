@@ -6,7 +6,7 @@ import { ENVS, Urls } from '../services/urls';
 import * as db from './db';
 import { uploadToS3WithKey } from './s3Client';
 
-const TRIPO_MODEL_FOLDER = 'tripo-models/';
+const TRIPO_MODEL_FOLDER = 'llm/';
 
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
