@@ -270,6 +270,15 @@
               <label style="font-weight:normal;font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer">
                 <input type="checkbox" value="v3.0-20250812" onchange="updateTripoSummary()"> v3.0
               </label>
+              <label style="font-weight:normal;font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer">
+                <input type="checkbox" value="v3.1-20260211" onchange="updateTripoSummary()"> v3.1
+              </label>
+              <label style="font-weight:normal;font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer">
+                <input type="checkbox" value="P1-20260311" onchange="updateTripoSummary()"> P1
+              </label>
+              <label style="font-weight:normal;font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer">
+                <input type="checkbox" value="Turbo-v1.0-20250506" onchange="updateTripoSummary()"> Turbo-v1.0
+              </label>
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:12px">
@@ -280,9 +289,15 @@
       </form>
     </div>
     <div class="card">
+      <div id="tripo-batch-bar" class="hidden" style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+        <span id="tripo-selected-count" style="font-size:13px;color:#666"></span>
+        <button class="btn btn-success btn-sm" onclick="batchDownloadTripo()">Download Selected</button>
+        <button class="btn btn-danger btn-sm" onclick="batchDeleteTripo()">Delete Selected</button>
+      </div>
       <table>
         <thead>
           <tr>
+            <th><input type="checkbox" id="tripo-select-all" onchange="toggleTripoSelectAll(this.checked)"></th>
             <th>ID</th>
             <th>Name</th>
             <th>Input</th>
@@ -1157,6 +1172,7 @@ async function loadTripoTasks() {
     const facesK = t.faceLimit ? (t.faceLimit / 10000) + 'w' : '-';
 
     return `<tr>
+      <td><input type="checkbox" class="tripo-row-cb" value="${t.id}" data-model-url="${esc(t.modelUrl || '')}" onchange="updateTripoBatchBar()"></td>
       <td>${t.id}</td>
       <td>${esc(t.name)}</td>
       <td>${inputThumb}</td>
@@ -1269,6 +1285,50 @@ function updateTripoSummary() {
   } else {
     el.textContent = '';
   }
+}
+
+function toggleTripoSelectAll(checked) {
+  document.querySelectorAll('.tripo-row-cb').forEach(cb => cb.checked = checked);
+  updateTripoBatchBar();
+}
+
+function updateTripoBatchBar() {
+  const checked = document.querySelectorAll('.tripo-row-cb:checked');
+  const bar = document.getElementById('tripo-batch-bar');
+  if (checked.length > 0) {
+    bar.classList.remove('hidden');
+    bar.style.display = 'flex';
+    document.getElementById('tripo-selected-count').textContent = checked.length + ' selected';
+  } else {
+    bar.classList.add('hidden');
+    bar.style.display = 'none';
+  }
+}
+
+async function batchDeleteTripo() {
+  const ids = Array.from(document.querySelectorAll('.tripo-row-cb:checked')).map(cb => cb.value);
+  if (!ids.length) return;
+  if (!confirm('Delete ' + ids.length + ' task(s)?')) return;
+  for (const id of ids) {
+    await authFetch(API + '/api/tripo/' + id, { method: 'DELETE' });
+    if (tripoPollers[id]) { clearInterval(tripoPollers[id]); delete tripoPollers[id]; }
+  }
+  loadTripoTasks();
+}
+
+async function batchDownloadTripo() {
+  const cbs = Array.from(document.querySelectorAll('.tripo-row-cb:checked'));
+  const urls = cbs.map(cb => cb.dataset.modelUrl).filter(u => u);
+  if (!urls.length) return alert('No downloadable models in selection');
+  urls.forEach(url => {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '';
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  });
 }
 
 async function deleteTripoTask(id) {
