@@ -18,13 +18,15 @@ export async function uploadImageToTripo(buffer: Buffer, format: string): Promis
   return res.data.data.image_token;
 }
 
-export async function createTripoTask(fileToken: string): Promise<string> {
+export async function createTripoTask(fileToken: string, format: string = 'png', faceLimit: number = 200000, modelVersion: string = 'v2.0-20240919'): Promise<string> {
   const res = await tRequest.instance.post(Urls.task.create, {
     type: 'image_to_model',
     file: {
-      type: 'jpg',
+      type: format,
       file_token: fileToken,
     },
+    face_limit: faceLimit,
+    model_version: modelVersion,
   });
   return res.data.data.task_id;
 }
@@ -71,7 +73,7 @@ export async function runTripoGeneration(dbTaskId: number): Promise<void> {
 
     // Create Tripo task
     await db.updateTripoTask(dbTaskId, { status: 'creating', progress: 10 });
-    const tripoTaskId = await createTripoTask(imageToken);
+    const tripoTaskId = await createTripoTask(imageToken, ext, task.faceLimit, task.modelVersion);
     await db.updateTripoTask(dbTaskId, { tripoTaskId, status: 'running', progress: 15 });
 
     // Poll until done

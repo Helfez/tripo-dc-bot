@@ -237,16 +237,45 @@
     </div>
     <div class="card">
       <h3 style="margin-bottom:12px">Generate 3D Model from Image</h3>
-      <form id="tripo-form" onsubmit="submitTripo(event)" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
-        <div class="form-group" style="flex:1;min-width:150px;margin-bottom:0">
-          <label>Name</label>
-          <input type="text" id="tripo-name" placeholder="e.g. Dragon Model" style="margin-bottom:0">
+      <form id="tripo-form" onsubmit="submitTripo(event)">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+          <div class="form-group" style="flex:1;min-width:150px;margin-bottom:0">
+            <label>Name</label>
+            <input type="text" id="tripo-name" placeholder="e.g. Dragon Model" style="margin-bottom:0">
+          </div>
+          <div class="form-group" style="flex:1;min-width:200px;margin-bottom:0">
+            <label>Image *</label>
+            <input type="file" id="tripo-image" accept="image/*" required style="margin-bottom:0">
+          </div>
+          <div class="form-group" style="min-width:160px;margin-bottom:0">
+            <label>Face Limit</label>
+            <input type="number" id="tripo-face-limit" value="200000" min="50000" max="5000000" step="10000" style="margin-bottom:0">
+          </div>
+          <div class="form-group" style="min-width:100px;margin-bottom:0">
+            <label>Repeat</label>
+            <input type="number" id="tripo-repeat" value="1" min="1" max="10" style="margin-bottom:0" onchange="updateTripoSummary()">
+          </div>
         </div>
-        <div class="form-group" style="flex:1;min-width:200px;margin-bottom:0">
-          <label>Image *</label>
-          <input type="file" id="tripo-image" accept="image/*" required style="margin-bottom:0">
+        <div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">
+          <div class="form-group" style="margin-bottom:0">
+            <label>Model Versions *</label>
+            <div id="tripo-versions" style="display:flex;gap:12px;flex-wrap:wrap">
+              <label style="font-weight:normal;font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer">
+                <input type="checkbox" value="v2.0-20240919" checked onchange="updateTripoSummary()"> v2.0
+              </label>
+              <label style="font-weight:normal;font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer">
+                <input type="checkbox" value="v2.5-20250123" onchange="updateTripoSummary()"> v2.5
+              </label>
+              <label style="font-weight:normal;font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer">
+                <input type="checkbox" value="v3.0-20250812" onchange="updateTripoSummary()"> v3.0
+              </label>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <button type="submit" class="btn btn-primary" id="tripo-submit-btn">Generate 3D</button>
+            <span id="tripo-summary" style="font-size:13px;color:#666"></span>
+          </div>
         </div>
-        <button type="submit" class="btn btn-primary" id="tripo-submit-btn">Generate 3D</button>
       </form>
     </div>
     <div class="card">
@@ -256,6 +285,8 @@
             <th>ID</th>
             <th>Name</th>
             <th>Input</th>
+            <th>Version</th>
+            <th>Faces</th>
             <th>Status</th>
             <th>Progress</th>
             <th>Preview</th>
@@ -1115,11 +1146,15 @@ async function loadTripoTasks() {
       : '-';
     const duration = t.durationMs ? (t.durationMs / 1000).toFixed(1) + 's' : '-';
     const errorInfo = t.error ? `<div style="font-size:11px;color:#e74c3c;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(t.error)}">${esc(t.error)}</div>` : '';
+    const versionShort = (t.modelVersion || '').replace(/-\d+$/, '');
+    const facesK = t.faceLimit ? (t.faceLimit / 10000) + 'w' : '-';
 
     return `<tr>
       <td>${t.id}</td>
       <td>${esc(t.name)}</td>
       <td>${inputThumb}</td>
+      <td><span style="font-size:12px;color:#555">${esc(versionShort)}</span></td>
+      <td><span style="font-size:12px;color:#555">${facesK}</span></td>
       <td><span class="badge ${statusClass}">${t.status}</span>${errorInfo}</td>
       <td>
         <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${t.progress}%"></div></div>
@@ -1168,6 +1203,12 @@ async function submitTripo(e) {
   const fileInput = document.getElementById('tripo-image');
   if (!fileInput.files.length) return alert('Please select an image');
 
+  const selectedVersions = Array.from(document.querySelectorAll('#tripo-versions input[type=checkbox]:checked')).map(cb => cb.value);
+  if (!selectedVersions.length) return alert('Please select at least one model version');
+
+  const faceLimit = parseInt(document.getElementById('tripo-face-limit').value, 10) || 200000;
+  const repeatCount = parseInt(document.getElementById('tripo-repeat').value, 10) || 1;
+
   const btn = document.getElementById('tripo-submit-btn');
   btn.disabled = true;
   btn.textContent = 'Uploading...';
@@ -1176,6 +1217,9 @@ async function submitTripo(e) {
     const fd = new FormData();
     fd.append('name', name);
     fd.append('image', fileInput.files[0]);
+    fd.append('faceLimit', String(faceLimit));
+    fd.append('repeatCount', String(repeatCount));
+    fd.append('modelVersions', JSON.stringify(selectedVersions));
     const res = await fetch(API + '/api/tripo', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + authToken },
@@ -1185,15 +1229,32 @@ async function submitTripo(e) {
       const err = await res.json();
       throw new Error(err.error || 'Failed');
     }
-    const task = await res.json();
+    const tasks = await res.json();
     document.getElementById('tripo-form').reset();
+    // Re-check default version after reset
+    document.querySelector('#tripo-versions input[value="v2.0-20240919"]').checked = true;
+    document.getElementById('tripo-face-limit').value = '200000';
+    document.getElementById('tripo-repeat').value = '1';
+    updateTripoSummary();
     loadTripoTasks();
-    startTripoPoller(task.id);
+    (Array.isArray(tasks) ? tasks : [tasks]).forEach(t => startTripoPoller(t.id));
   } catch (err) {
     alert('Error: ' + err.message);
   } finally {
     btn.disabled = false;
     btn.textContent = 'Generate 3D';
+  }
+}
+
+function updateTripoSummary() {
+  const versions = document.querySelectorAll('#tripo-versions input[type=checkbox]:checked').length;
+  const repeat = parseInt(document.getElementById('tripo-repeat').value, 10) || 1;
+  const total = versions * repeat;
+  const el = document.getElementById('tripo-summary');
+  if (total > 1) {
+    el.textContent = `${versions} version(s) x ${repeat} repeat(s) = ${total} tasks`;
+  } else {
+    el.textContent = '';
   }
 }
 

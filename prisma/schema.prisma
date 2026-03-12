@@ -171,6 +171,8 @@ model TripoTask {
   tripoTaskId     String    @default("") @map("tripo_task_id")
   status          String    @default("pending")
   progress        Int       @default(0)
+  faceLimit       Int       @default(200000) @map("face_limit")
+  modelVersion    String    @default("v2.0-20240919") @map("model_version")
   modelUrl        String    @default("") @map("model_url")
   renderedImage   String    @default("") @map("rendered_image")
   renderedVideo   String    @default("") @map("rendered_video")

@@ -38,7 +38,7 @@ router.get('/', async (_req: Request, res: Response) => {
   }
 });
 
-// Create a new tripo task (upload image + fire-and-forget generation)
+// Create tripo tasks (upload image + batch create by versions x repeatCount)
 router.post('/', upload.single('image') as any, async (req: Request, res: Response) => {
   try {
     const { name } = req.body;
@@ -46,15 +46,39 @@ router.post('/', upload.single('image') as any, async (req: Request, res: Respon
       res.status(400).json({ error: 'image is required' });
       return;
     }
+
+    const faceLimit = Math.min(5000000, Math.max(50000, parseInt(req.body.faceLimit, 10) || 200000));
+    const repeatCount = Math.min(10, Math.max(1, parseInt(req.body.repeatCount, 10) || 1));
+    let modelVersions: string[];
+    try {
+      modelVersions = JSON.parse(req.body.modelVersions || '[]');
+    } catch {
+      modelVersions = [];
+    }
+    if (!modelVersions.length) {
+      modelVersions = ['v2.0-20240919'];
+    }
+
     const taskName = name || req.file.originalname || 'Untitled';
-    const record = await db.createTripoTaskRecord(taskName, req.file.path);
+    const imagePath = req.file.path;
+    const records = [];
 
-    // Fire-and-forget
-    runTripoGeneration(record.id).catch(err => {
-      console.error(`[tripo] Generation error for task ${record.id}:`, err);
-    });
+    for (const version of modelVersions) {
+      for (let i = 0; i < repeatCount; i++) {
+        const suffix = modelVersions.length > 1 || repeatCount > 1
+          ? ` [${version}${repeatCount > 1 ? ` #${i + 1}` : ''}]`
+          : '';
+        const record = await db.createTripoTaskRecord(taskName + suffix, imagePath, faceLimit, version);
+        records.push(record);
 
-    res.json(record);
+        // Fire-and-forget
+        runTripoGeneration(record.id).catch(err => {
+          console.error(`[tripo] Generation error for task ${record.id}:`, err);
+        });
+      }
+    }
+
+    res.json(records);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
