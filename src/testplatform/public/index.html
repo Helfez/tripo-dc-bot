@@ -1158,10 +1158,10 @@ async function loadTripoTasks() {
       ? `<a href="${esc(t.shareUrl)}" target="_blank" class="btn btn-sm btn-primary">View 3D</a>`
       : '';
     const preview3dBtn = t.modelUrl
-      ? `<button class="btn btn-sm" style="background:#8e44ad;color:#fff" onclick="show3DPreview('${esc(t.modelUrl)}','${esc(t.name)}')">Preview</button>`
+      ? `<button class="btn btn-sm" style="background:#8e44ad;color:#fff;display:block;width:100%;margin-bottom:4px" onclick="show3DPreview('${esc(t.modelUrl)}',\`${esc(t.name)}\`)">Preview</button>`
       : '';
     const downloadLink = t.modelUrl
-      ? `<a href="${esc(t.modelUrl)}" target="_blank" class="btn btn-sm btn-success" download>Download</a>`
+      ? `<a href="${esc(t.modelUrl)}" target="_blank" class="btn btn-sm btn-success" style="display:block;width:100%" download>Download</a>`
       : '';
     const rendered = t.renderedImage
       ? `<img class="img-thumb" src="${esc(t.renderedImage)}" style="cursor:pointer" onclick="window.open(this.src,'_blank')">`
@@ -1174,7 +1174,7 @@ async function loadTripoTasks() {
     return `<tr>
       <td><input type="checkbox" class="tripo-row-cb" value="${t.id}" data-model-url="${esc(t.modelUrl || '')}" onchange="updateTripoBatchBar()"></td>
       <td>${t.id}</td>
-      <td>${esc(t.name)}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(t.name)}">${esc(t.name)}</td>
       <td>${inputThumb}</td>
       <td><span style="font-size:12px;color:#555">${esc(versionShort)}</span></td>
       <td><span style="font-size:12px;color:#555">${facesK}</span></td>
@@ -1183,7 +1183,7 @@ async function loadTripoTasks() {
         <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${t.progress}%"></div></div>
         <span style="font-size:11px;color:#666">${t.progress}%</span>
       </td>
-      <td>${preview3dBtn} ${downloadLink}</td>
+      <td style="min-width:90px">${preview3dBtn}${downloadLink}</td>
       <td>${rendered}</td>
       <td>${duration}</td>
       <td>${fmtDate(t.createdAt)}</td>
