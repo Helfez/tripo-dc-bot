@@ -9,6 +9,7 @@ import { PRIZE_TIERS, PrizeTier, getLotteryConfig } from '../services/lottery/lo
 import * as userService from '../services/lottery/userService';
 import * as prizeService from '../services/lottery/prizeService';
 import * as poolService from '../services/lottery/poolService';
+import * as robloxCodeService from '../services/lottery/robloxCodeService';
 
 export const data = new SlashCommandBuilder()
   .setName('admin')
@@ -42,6 +43,14 @@ export const data = new SlashCommandBuilder()
   )
   .addSubcommand(sub =>
     sub.setName('export-prizes').setDescription('Export all prize records')
+  )
+  .addSubcommand(sub =>
+    sub.setName('import-codes')
+      .setDescription('Import Roblox redeem codes from a text file (one code per line)')
+      .addAttachmentOption(opt => opt.setName('file').setDescription('Text file with codes').setRequired(true))
+  )
+  .addSubcommand(sub =>
+    sub.setName('code-stats').setDescription('View Roblox redeem code inventory')
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
@@ -64,6 +73,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       case 'confirm-purchase': return await handleConfirmPurchase(interaction);
       case 'set-config': return await handleSetConfig(interaction);
       case 'export-prizes': return await handleExportPrizes(interaction);
+      case 'import-codes': return await handleImportCodes(interaction);
+      case 'code-stats': return await handleCodeStats(interaction);
     }
   } catch (err) {
     console.error('Admin command error:', err);
@@ -77,7 +88,7 @@ async function handleStats(interaction: ChatInputCommandInteraction) {
   const totalDraws = await prisma.user.aggregate({ _sum: { totalDraws: true } });
   const { total, byTier } = await prizeService.getGlobalStats();
 
-  const tierLines = byTier.map(t => `  ${t.prizeTier}: ${t._count.id}`).join('\n');
+  const tierLines = byTier.map((t: { prizeTier: string; _count: { id: number } }) => `  ${t.prizeTier}: ${t._count.id}`).join('\n');
 
   const embed = new EmbedBuilder()
     .setColor(0xF59E0B)
@@ -97,7 +108,7 @@ async function handlePool(interaction: ChatInputCommandInteraction) {
   await poolService.ensureTodayPool();
   const pools = await poolService.getTodayPoolStatus();
 
-  const lines = pools.map(p => {
+  const lines = pools.map((p: { prizeTier: string; remaining: number; totalCount: number; wonCount: number }) => {
     const cfg = PRIZE_TIERS[p.prizeTier as PrizeTier];
     const name = cfg ? cfg.name : p.prizeTier;
     return `**${name}**: ${p.remaining}/${p.totalCount} remaining (won: ${p.wonCount})`;
@@ -187,10 +198,45 @@ async function handleExportPrizes(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  const csv = prizes.map(p =>
+  const csv = prizes.map((p: { createdAt: Date; discordId: string; prizeTier: string; couponCode: string; isUsed: boolean }) =>
     `${p.createdAt.toISOString().split('T')[0]} | ${p.discordId} | ${p.prizeTier} | ${p.couponCode} | used:${p.isUsed}`
   ).join('\n');
 
   const header = 'Date | Discord ID | Tier | Code | Used';
   await interaction.editReply(`\`\`\`\n${header}\n${'─'.repeat(60)}\n${csv}\n\`\`\``);
+}
+
+async function handleImportCodes(interaction: ChatInputCommandInteraction) {
+  const attachment = interaction.options.getAttachment('file', true);
+
+  const resp = await fetch(attachment.url);
+  const text = await resp.text();
+  const codes = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+
+  if (codes.length === 0) {
+    await interaction.editReply('⚠️ No codes found in the file.');
+    return;
+  }
+
+  const imported = await robloxCodeService.importCodes(codes);
+  const available = await robloxCodeService.getAvailableCount();
+  await interaction.editReply(`✅ Imported **${imported}** codes (skipped ${codes.length - imported} duplicates).\nAvailable codes: **${available}**`);
+}
+
+async function handleCodeStats(interaction: ChatInputCommandInteraction) {
+  const available = await robloxCodeService.getAvailableCount();
+  const used = await robloxCodeService.getUsedCount();
+  const total = available + used;
+
+  const embed = new EmbedBuilder()
+    .setColor(0x00B06B)
+    .setTitle('🎮 Roblox Code Inventory')
+    .addFields(
+      { name: 'Total', value: `${total}`, inline: true },
+      { name: 'Available', value: `${available}`, inline: true },
+      { name: 'Used', value: `${used}`, inline: true },
+    )
+    .setTimestamp();
+
+  await interaction.editReply({ embeds: [embed] });
 }

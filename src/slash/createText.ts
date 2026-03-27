@@ -14,6 +14,7 @@ import {BtnFormat, ModelVersion} from "../utils/constants";
 import {isReachRateControl, RATE_CONTROL_LIMIT, TaskType} from "../utils/rateControl";
 import {downloadImageAsUint8Array} from "../utils/imageUtils";
 import tLog, {LOG_ACTIONS} from "../utils/logUtils";
+import {sendRobloxCode} from "../utils/robloxReward";
 
 const merge = require('../libs/imgLib/img_quad');
 
@@ -121,6 +122,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
           actions,
         ]
       });
+
+      // Send Roblox redemption code (ephemeral, non-fatal)
+      await sendRobloxCode(interaction);
     } catch (e: any) {
       await interaction.editReply({
         content: sprintf("%s\nStatus: error %v", msgHeader, e),

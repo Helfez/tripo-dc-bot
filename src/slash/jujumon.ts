@@ -11,6 +11,7 @@ import {runJujumonPipeline} from "../services/jujumonPipeline";
 import tLog, {LOG_ACTIONS} from "../utils/logUtils";
 import * as workService from "../services/lottery/workService";
 import {CheckoutBtnRows, JUJUMON_VARIANTS} from "../components/buttons/checkoutBtns";
+import {sendRobloxCode} from "../utils/robloxReward";
 
 const CATEGORY_DISPLAY: Record<ClassifyCategory, string> = {
   human: "\u{1F9D1} Human Portrait",
@@ -122,6 +123,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     } catch (lotteryErr: any) {
       tLog.logError(LOG_ACTIONS.LOTTERY, 'Failed to record work:', lotteryErr?.message || lotteryErr);
     }
+
+    // Send Roblox redemption code (ephemeral, non-fatal)
+    await sendRobloxCode(interaction);
 
     tLog.logSuccess(LOG_ACTIONS.SYS, `jujumon [${result.category}] done`);
   } catch (e: any) {

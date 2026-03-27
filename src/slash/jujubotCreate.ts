@@ -10,6 +10,7 @@ import {WORKFLOW_CHOICES, WorkflowType} from "../services/workflowConfig";
 import {runCreatePipeline} from "../services/createPipeline";
 import tLog, {LOG_ACTIONS} from "../utils/logUtils";
 import {CheckoutBtnRows} from "../components/buttons/checkoutBtns";
+import {sendRobloxCode} from "../utils/robloxReward";
 
 export const data = new SlashCommandBuilder()
   .setName('jujubot-create')
@@ -86,6 +87,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const designUrl = `https://discord.com/channels/${interaction.guildId}/${msg.channelId}/${msg.id}`;
     const checkoutRows = CheckoutBtnRows({ styleName, designUrl });
     await interaction.editReply({ components: checkoutRows });
+
+    // Send Roblox redemption code (ephemeral, non-fatal)
+    await sendRobloxCode(interaction);
 
     tLog.logSuccess(LOG_ACTIONS.SYS, 'jujubot-create success', style);
   } catch (e: any) {

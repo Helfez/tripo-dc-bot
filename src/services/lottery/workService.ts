@@ -31,8 +31,8 @@ export async function createWork(
     },
   });
 
-  // 创作完成自动 +1 抽奖次数
-  await userService.addDrawChance(discordId, 1);
+  // 创作完成自动 +1 抽奖次数 (disabled: replaced by Roblox redeem codes)
+  // await userService.addDrawChance(discordId, 1);
 
   return work;
 }

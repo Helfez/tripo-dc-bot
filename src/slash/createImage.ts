@@ -18,6 +18,7 @@ import {downloadImageAsUint8Array} from "../utils/imageUtils";
 import {isReachRateControl, RATE_CONTROL_LIMIT, TaskType} from "../utils/rateControl";
 import tLog, {LOG_ACTIONS} from "../utils/logUtils";
 import {ModelVersion} from "../utils/constants";
+import {sendRobloxCode} from "../utils/robloxReward";
 
 const merge = require('../libs/imgLib/img_quad');
 
@@ -107,6 +108,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
               row3,
             ]
           });
+
+          // Send Roblox redemption code (ephemeral, non-fatal)
+          await sendRobloxCode(interaction);
         },
         onError: async (e: any) => {
           if (e.info && e.info.code ) {
