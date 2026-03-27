@@ -12,7 +12,7 @@ export async function sendRobloxCode(interaction: ChatInputCommandInteraction): 
 
     if (!code) {
       await interaction.followUp({
-        content: 'All 2000 redemption codes are gone! Look forward to our next event~',
+        content: 'All 3000 redemption codes are gone! Look forward to our next event~',
         ephemeral: true,
       });
       return;
