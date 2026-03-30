@@ -9,7 +9,7 @@ import tLog, { LOG_ACTIONS } from './logUtils';
 export async function sendRobloxCode(interaction: ChatInputCommandInteraction): Promise<void> {
   try {
     const result = await robloxCodeService.claimCode(interaction.user.id);
-
+    console.log('Roblox code claim result:', result);
     if (result.status === 'no_codes' || result.status === 'daily_limit') {
       await interaction.followUp({
         content: 'All 3000 redemption codes are gone! Look forward to our next event~',
