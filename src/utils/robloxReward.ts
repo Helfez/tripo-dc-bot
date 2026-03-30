@@ -10,9 +10,17 @@ export async function sendRobloxCode(interaction: ChatInputCommandInteraction): 
   try {
     const result = await robloxCodeService.claimCode(interaction.user.id);
     console.log('Roblox code claim result:', result);
-    if (result.status === 'no_codes' || result.status === 'daily_limit') {
+    if (result.status === 'no_codes') {
       await interaction.followUp({
-        content: 'All 3000 redemption codes are gone! Look forward to our next event~',
+        content: 'All redemption codes are gone! Look forward to our next event',
+        ephemeral: true,
+      });
+      return;
+    }
+
+    if (result.status === 'daily_limit') {
+      await interaction.followUp({
+        content: 'You have already successfully claimed a code before. Thank you! Please join us next time.',
         ephemeral: true,
       });
       return;
