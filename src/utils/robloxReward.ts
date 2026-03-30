@@ -8,9 +8,9 @@ import tLog, { LOG_ACTIONS } from './logUtils';
  */
 export async function sendRobloxCode(interaction: ChatInputCommandInteraction): Promise<void> {
   try {
-    const code = await robloxCodeService.claimCode(interaction.user.id);
+    const result = await robloxCodeService.claimCode(interaction.user.id);
 
-    if (!code) {
+    if (result.status === 'no_codes' || result.status === 'daily_limit') {
       await interaction.followUp({
         content: 'All 3000 redemption codes are gone! Look forward to our next event~',
         ephemeral: true,
@@ -23,7 +23,7 @@ export async function sendRobloxCode(interaction: ChatInputCommandInteraction): 
       .setTitle('🎮 Roblox Reward Code')
       .setDescription(
         `Thanks for creating! Here is your Roblox redemption code:\n\n` +
-        `\`${code}\`\n\n` +
+        `\`${result.code}\`\n\n` +
         `💡 Redeem this code in Roblox.`,
       )
       .setFooter({ text: 'This message is only visible to you' })

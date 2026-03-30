@@ -1,23 +1,37 @@
 import { RobloxCode } from '@prisma/client';
 import { getPrisma } from './prismaClient';
 
+export type ClaimResult =
+  | { status: 'ok'; code: string }
+  | { status: 'daily_limit' }
+  | { status: 'no_codes' };
+
 /**
  * 原子领取一个未使用的 Roblox 兑换码，标记为已使用。
- * 返回码字符串；无可用码时返回 null。
+ * 每个用户每天只能领取一次。
  */
-export async function claimCode(discordId: string): Promise<string | null> {
+export async function claimCode(discordId: string): Promise<ClaimResult> {
   const prisma = getPrisma();
   return prisma.$transaction(async (tx) => {
+    // 检查今日是否已领取
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const claimed = await tx.robloxCode.findFirst({
+      where: { discordId, usedAt: { gte: todayStart } },
+    });
+    if (claimed) return { status: 'daily_limit' };
+
     const row = await tx.robloxCode.findFirst({
       where: { discordId: null },
       orderBy: { id: 'asc' },
     });
-    if (!row) return null;
+    if (!row) return { status: 'no_codes' };
+
     await tx.robloxCode.update({
       where: { id: row.id },
       data: { discordId, usedAt: new Date() },
     });
-    return row.code;
+    return { status: 'ok', code: row.code };
   });
 }
 
