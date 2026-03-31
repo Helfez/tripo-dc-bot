@@ -2,6 +2,7 @@ import {
   SlashCommandBuilder,
   ChatInputCommandInteraction,
   EmbedBuilder,
+  AttachmentBuilder,
   PermissionFlagsBits,
 } from 'discord.js';
 import { getPrisma } from '../services/lottery/prismaClient';
@@ -45,6 +46,9 @@ export const data = new SlashCommandBuilder()
     sub.setName('export-prizes').setDescription('Export all prize records')
   )
   .addSubcommand(sub =>
+    sub.setName('export-roblox-codes').setDescription('Export all unclaimed Roblox codes as a CSV file')
+  )
+  .addSubcommand(sub =>
     sub.setName('import-codes')
       .setDescription('Import Roblox redeem codes from a text file (one code per line)')
       .addAttachmentOption(opt => opt.setName('file').setDescription('Text file with codes').setRequired(true))
@@ -73,6 +77,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       case 'confirm-purchase': return await handleConfirmPurchase(interaction);
       case 'set-config': return await handleSetConfig(interaction);
       case 'export-prizes': return await handleExportPrizes(interaction);
+      case 'export-roblox-codes': return await handleExportRobloxCodes(interaction);
       case 'import-codes': return await handleImportCodes(interaction);
       case 'code-stats': return await handleCodeStats(interaction);
     }
@@ -221,6 +226,31 @@ async function handleImportCodes(interaction: ChatInputCommandInteraction) {
   const imported = await robloxCodeService.importCodes(codes);
   const available = await robloxCodeService.getAvailableCount();
   await interaction.editReply(`✅ Imported **${imported}** codes (skipped ${codes.length - imported} duplicates).\nAvailable codes: **${available}**`);
+}
+
+async function handleExportRobloxCodes(interaction: ChatInputCommandInteraction) {
+  const prisma = getPrisma();
+  const codes = await prisma.robloxCode.findMany({
+    where: { discordId: null },
+    orderBy: { id: 'asc' },
+  });
+
+  if (codes.length === 0) {
+    await interaction.editReply('No unclaimed Roblox codes available.');
+    return;
+  }
+
+  const csvContent = codes.map(row => row.code).join('\n');
+
+  const date = new Date().toISOString().split('T')[0];
+  const file = new AttachmentBuilder(Buffer.from(csvContent, 'utf-8'), {
+    name: `roblox_codes_unclaimed_${date}.csv`,
+  });
+
+  await interaction.editReply({
+    content: `✅ Exported **${codes.length}** unclaimed Roblox codes.`,
+    files: [file],
+  });
 }
 
 async function handleCodeStats(interaction: ChatInputCommandInteraction) {
