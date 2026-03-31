@@ -13,11 +13,9 @@ export type ClaimResult =
 export async function claimCode(discordId: string): Promise<ClaimResult> {
   const prisma = getPrisma();
   return prisma.$transaction(async (tx) => {
-    // 检查今日是否已领取
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    // 检查是否已领取过（终身限制，每人只能领一次）
     const claimed = await tx.robloxCode.findFirst({
-      where: { discordId, usedAt: { gte: todayStart } },
+      where: { discordId },
     });
     if (claimed) return { status: 'daily_limit' };
 
