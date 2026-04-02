@@ -82,10 +82,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const embed = new EmbedBuilder().setImage('attachment://result.png');
     if (imageUrl) embed.setThumbnail(imageUrl);
 
-    const msg = await interaction.editReply({ content: msgHeader, embeds: [embed], files: [file] });
+    await interaction.editReply({ content: msgHeader, embeds: [embed], files: [file] });
 
-    const designUrl = `https://discord.com/channels/${interaction.guildId}/${msg.channelId}/${msg.id}`;
-    const checkoutRows = CheckoutBtnRows({ styleName, designUrl });
+    // Add checkout buttons with CDN URL
+    const checkoutRows = CheckoutBtnRows({ imageUrl: result.cdnUrl });
     await interaction.editReply({ components: checkoutRows });
 
     // Send Roblox redemption code (ephemeral, non-fatal)

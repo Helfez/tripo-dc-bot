@@ -27,20 +27,16 @@ export const JUJUMON_VARIANTS: VariantOption[] = [
 ];
 
 export interface CheckoutInfo {
-  styleName?: string;
-  designUrl?: string;
+  imageUrl?: string;  // CDN URL of generated image
 }
 
 function makeCheckoutUrl(variantId: string, info?: CheckoutInfo): string {
   const base = `${STORE_DOMAIN}/cart/${variantId}:1`;
-  if (!info?.designUrl && !info?.styleName) return base;
+  if (!info?.imageUrl) return base;
 
-  const note = [
-    info.styleName ? `Style: ${info.styleName}` : '',
-    info.designUrl ? `Design: ${info.designUrl}` : '',
-  ].filter(Boolean).join(' | ');
-
-  return `${base}?note=${encodeURIComponent(note)}`;
+  const properties = { "Generated Image": info.imageUrl };
+  const encoded = Buffer.from(JSON.stringify(properties)).toString('base64url');
+  return `${base}?properties=${encoded}`;
 }
 
 export function CheckoutBtnRows(info?: CheckoutInfo, variants?: VariantOption[]): ActionRowBuilder<ButtonBuilder>[] {

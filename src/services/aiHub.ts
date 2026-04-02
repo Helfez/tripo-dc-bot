@@ -1,5 +1,6 @@
 import axios from "axios";
 import tLog, {LOG_ACTIONS} from "../utils/logUtils";
+import { uploadBase64ToS3 } from "./s3Upload";
 
 const AIHUBMIX_BASE = "https://aihubmix.com";
 
@@ -11,7 +12,7 @@ interface GeminiImagePart {
 /**
  * Generate image using Gemini multimodal model via AIHubMix.
  * Supports img2img (with primaryImageUrl) and style-guided generation (with styleImageUrl).
- * Returns an image URL or base64 data URL.
+ * Returns a CDN URL (if S3 configured) or base64 data URL.
  */
 export async function generateWithGemini(
   apiKey: string,
@@ -30,6 +31,16 @@ export async function generateWithGemini(
 
     try {
       const result = await _callGeminiOnce(apiKey, prompt, primaryImageUrl, styleImageUrl, model);
+
+      // Upload to S3 if result is base64
+      if (result.startsWith("data:")) {
+        const cdnUrl = await uploadBase64ToS3(result);
+        if (cdnUrl) {
+          return cdnUrl;
+        }
+        tLog.log(LOG_ACTIONS.SYS, "S3 upload failed, returning base64 URL");
+      }
+
       return result;
     } catch (err: any) {
       lastError = err;

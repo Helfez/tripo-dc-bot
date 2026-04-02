@@ -19,6 +19,7 @@ export interface GenerationCallbacks {
 export interface TournamentResult {
   imageBuffer: Buffer;
   templateName: string;
+  cdnUrl?: string;
 }
 
 export async function runTournamentPipeline(
@@ -93,7 +94,11 @@ export async function runTournamentPipeline(
 
   const resultBuffer = await imageToBuffer(resultImageUrl);
   tLog.logSuccess(LOG_ACTIONS.SYS, `pipeline [${template}] success`);
-  return {imageBuffer: resultBuffer, templateName};
+
+  // Extract CDN URL if result is a URL (not base64)
+  const cdnUrl = resultImageUrl.startsWith('http') ? resultImageUrl : undefined;
+
+  return {imageBuffer: resultBuffer, templateName, cdnUrl};
 }
 
 export async function imageToBuffer(imageUrlOrBase64: string): Promise<Buffer> {

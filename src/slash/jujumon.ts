@@ -105,11 +105,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       files: [file],
     });
 
-    // Add checkout buttons
-    const msg = await interaction.fetchReply();
-    const designUrl = `https://discord.com/channels/${interaction.guildId}/${msg.channelId}/${msg.id}`;
-    const styleName = CATEGORY_TITLE[result.category];
-    const checkoutRows = CheckoutBtnRows({ styleName, designUrl }, JUJUMON_VARIANTS);
+    // Upload to S3 and get CDN URL for checkout buttons
+    const checkoutRows = CheckoutBtnRows({ imageUrl: result.cdnUrl }, JUJUMON_VARIANTS);
     await interaction.editReply({ components: checkoutRows });
 
     // Record work + auto +1 lottery chance (non-fatal)

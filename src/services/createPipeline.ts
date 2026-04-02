@@ -29,6 +29,7 @@ export interface CreateCallbacks {
 export interface CreateResult {
   imageBuffer: Buffer;
   styleName: string;
+  cdnUrl?: string;
 }
 
 export async function runCreatePipeline(
@@ -155,5 +156,9 @@ ${config.img2img_prompt}`;
 
   const resultBuffer = await imageToBuffer(resultImageUrl);
   tLog.logSuccess(LOG_ACTIONS.SYS, `pipeline create [${style}] success`);
-  return {imageBuffer: resultBuffer, styleName};
+
+  // Extract CDN URL if result is a URL (not base64)
+  const cdnUrl = resultImageUrl.startsWith('http') ? resultImageUrl : undefined;
+
+  return {imageBuffer: resultBuffer, styleName, cdnUrl};
 }

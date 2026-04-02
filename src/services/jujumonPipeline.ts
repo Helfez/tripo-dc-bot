@@ -20,6 +20,7 @@ export interface JujumonCallbacks {
 export interface JujumonResult {
   imageBuffer: Buffer;
   category: ClassifyCategory;
+  cdnUrl?: string;
 }
 
 export async function runJujumonPipeline(
@@ -120,5 +121,9 @@ export async function runJujumonPipeline(
 
   const resultBuffer = await imageToBuffer(resultImageUrl);
   tLog.logSuccess(LOG_ACTIONS.SYS, `pipeline jujumon [${classResult.category}] success`);
-  return {imageBuffer: resultBuffer, category: classResult.category};
+
+  // Extract CDN URL if result is a URL (not base64)
+  const cdnUrl = resultImageUrl.startsWith('http') ? resultImageUrl : undefined;
+
+  return {imageBuffer: resultBuffer, category: classResult.category, cdnUrl};
 }

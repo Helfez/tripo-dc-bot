@@ -57,6 +57,7 @@ src/
 │   ├── config.ts               # 通用配置
 │   ├── task.ts                 # 3D 生成任务封装
 │   ├── account.ts              # 账号管理
+│   ├── s3Upload.ts             # S3 图片上传 (生成 CDN URL)
 │   ├── twitterClient.ts        # Twitter API
 │   ├── twitterScheduler.ts     # 定时推文
 │   ├── giveawayScheduler.ts    # 赠品活动定时器
@@ -191,6 +192,13 @@ TWITTER_APP_SECRET=
 TWITTER_ACCESS_TOKEN=
 TWITTER_ACCESS_SECRET=
 
+# S3 (Discord 生成图片存储)
+DISCORD_AWS_ACCESS_KEY_ID=
+DISCORD_AWS_SECRET_ACCESS_KEY=
+DISCORD_AWS_BUCKET_NAME=
+DISCORD_AWS_REGION=ap-southeast-1
+DISCORD_CDN_DOMAIN=              # 可选：自定义 CDN 域名
+
 # 抽奖系统
 DATABASE_URL=file:./data/jujumon.db
 CHANNEL_LUCKY_DRAW=             # 抽奖公告频道 ID
@@ -235,3 +243,10 @@ npx prisma studio       # 可视化数据库管理
 - AI API Key 统一用 `ENVS.aiHubApiKey`，来源于 `AIHUBMIX_API_KEY` 环境变量
 - 日志统一用 `tLog` (`src/utils/logUtils.ts`)，支持 `log/logError/logSuccess`
 - 图片处理: 文件路径 ↔ base64 data URL 转换在 `pipelineAdapter.ts` 的 `imagePathToDataUrl()`
+- **S3 图片上传与 Shopify 集成**:
+  - Discord 生成图片后自动上传到 S3 获取永久 CDN URL
+  - `initS3()` 在 Bot 启动时初始化 S3 客户端
+  - `uploadBufferToS3()` 上传图片 Buffer 到 S3，返回 CDN URL
+  - CDN URL 通过 Shopify line item properties 传递：`{"Generated Image": "https://cdn.example.com/image.png"}`
+  - Properties 使用 Base64 URL 编码后附加到购买链接：`/cart/{variant_id}:1?properties={base64url}`
+  - 如果 S3 未配置，上传会静默失败，按钮仍可正常工作（不带图片 URL）
