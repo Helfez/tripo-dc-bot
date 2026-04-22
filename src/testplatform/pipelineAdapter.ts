@@ -39,11 +39,11 @@ const EXTERNAL_WORKFLOWS: WorkflowDef[] = [
   { id: 'ext_harry_fantasy', name: 'Harry Fantasy', pipeline: 'external' },
   { id: 'ext_dnd_aetherra_world_user', name: 'DND-Aetherra世界-用户角色生成', pipeline: 'external' },
   { id: 'ext_dnd_aetherra_world_biology', name: 'DND-Aetherra世界-生物生成', pipeline: 'external' },
-  { id: 'graduation_funkopop', name: '🌞 funkopop-毕业季', pipeline: 'external' },
-  { id: 'graduation_high_quality', name: '🌞 毕业季-高精度', pipeline: 'external' },
-  { id: 'graduation_pixar', name: '🌞 皮克斯-毕业季', pipeline: 'external' },
-  { id: 'chibi_new', name: 'chibi翻修', pipeline: 'external' },
-  { id: 'scale_1_7', name: '1:7翻修', pipeline: 'external' }
+  { id: 'ext_graduation_funkopop', name: '🌞 funkopop-毕业季', pipeline: 'external' },
+  { id: 'ext_graduation_high_quality', name: '🌞 毕业季-高精度', pipeline: 'external' },
+  { id: 'ext_graduation_pixar', name: '🌞 皮克斯-毕业季', pipeline: 'external' },
+  { id: 'ext_chibi_new', name: 'chibi翻修', pipeline: 'external' },
+  { id: 'ext_scale_1_7', name: '1:7翻修', pipeline: 'external' }
 ];
 
 // Auto-build from config files so new workflows are picked up automatically
