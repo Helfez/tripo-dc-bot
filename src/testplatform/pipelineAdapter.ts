@@ -42,8 +42,8 @@ const EXTERNAL_WORKFLOWS: WorkflowDef[] = [
   { id: 'ext_graduation_funkopop', name: '🌞 funkopop-毕业季', pipeline: 'external' },
   { id: 'ext_graduation_high_quality', name: '🌞 毕业季-高精度', pipeline: 'external' },
   { id: 'ext_graduation_pixar', name: '🌞 皮克斯-毕业季', pipeline: 'external' },
-  { id: 'ext_chibi_new', name: 'chibi翻修', pipeline: 'external' },
-  { id: 'ext_scale_1_7', name: '1:7翻修', pipeline: 'external' }
+  { id: 'ext_chibi_new', name: 'chibi 翻修', pipeline: 'external' },
+  { id: 'ext_scale_1_7', name: '1:7 翻修', pipeline: 'external' }
 ];
 
 // Auto-build from config files so new workflows are picked up automatically
